@@ -2,8 +2,15 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pulse Grid - Accessible</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <!-- Mobile Fullscreen Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#121212">
+
+    <title>Pulse Grid</title>
     <style>
         :root {
             --bg-color: #121212;
@@ -13,19 +20,24 @@
             --font-main: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
-        body {
+        html, body {
             margin: 0;
             padding: 0;
+            width: 100%;
+            height: 100%;
+            /* Use dynamic viewport height to account for mobile address bars */
+            height: 100dvh; 
             background-color: var(--bg-color);
             color: var(--text-color);
             font-family: var(--font-main);
-            overflow: hidden;
+            overflow: hidden; /* Prevent scrolling completely */
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh;
-            touch-action: none;
+            touch-action: none; /* Disable native gestures like zoom/scroll */
+            -webkit-user-select: none; /* Disable text selection on iOS */
+            user-select: none;
         }
 
         #ui-container {
@@ -33,38 +45,39 @@
             max-width: 600px;
             display: flex;
             justify-content: space-between;
-            padding: 15px 20px;
+            padding: 10px 20px;
             box-sizing: border-box;
             z-index: 2;
+            flex-shrink: 0; /* Don't shrink the UI */
         }
 
         .stat-box {
             text-align: center;
             background: rgba(255, 255, 255, 0.05);
-            padding: 10px 20px;
+            padding: 8px 15px;
             border-radius: 12px;
-            min-width: 100px;
+            min-width: 80px;
         }
 
         .label {
-            font-size: 1rem;
+            font-size: 0.9rem;
             text-transform: uppercase;
             color: #aaa;
             letter-spacing: 1px;
         }
 
         .value {
-            font-size: 1.8rem;
+            font-size: 1.5rem;
             font-weight: bold;
             color: #fff;
         }
 
         #pulse-indicator {
             margin-top: 5px;
-            padding: 12px 20px;
+            padding: 10px 20px;
             background: #333;
             border-radius: 25px;
-            font-size: 1.1rem;
+            font-size: 1rem;
             font-weight: bold;
             text-align: center;
             border: 2px solid #555;
@@ -72,18 +85,17 @@
             width: 90%;
             max-width: 500px;
             z-index: 2;
+            flex-shrink: 0;
         }
 
         canvas {
             background-color: var(--grid-bg);
             border-radius: 12px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.6);
-            margin: 15px 0;
+            margin: 10px 0;
             cursor: pointer;
             z-index: 1;
-            /* Canvas size is handled by JS, but max-width ensures it fits */
-            max-width: 98vw;
-            max-height: 80vh;
+            touch-action: none;
         }
 
         /* Overlays */
@@ -93,7 +105,8 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(18, 18, 18, 0.95);
+            height: 100dvh;
+            background: rgba(18, 18, 18, 0.98);
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -109,17 +122,18 @@
         }
 
         h1 {
-            font-size: 3.5rem;
+            font-size: 3rem;
             margin-bottom: 20px;
             color: var(--highlight);
             text-shadow: 0 0 20px var(--highlight);
         }
 
         p {
-            font-size: 1.4rem;
+            font-size: 1.2rem;
             color: #ddd;
             margin: 10px 20px;
             line-height: 1.5;
+            max-width: 400px;
         }
 
         button {
@@ -133,13 +147,14 @@
             cursor: pointer;
             margin-top: 30px;
             box-shadow: 0 0 20px rgba(0, 255, 242, 0.4);
+            -webkit-tap-highlight-color: transparent;
         }
 
-        button:hover {
-            filter: brightness(1.1);
-            transform: scale(1.05);
+        button:active {
+            transform: scale(0.95);
         }
 
+        /* Status Colors */
         .pulse-normal { border-color: #555; color: #fff; }
         .pulse-gravity { border-color: #f39c12; color: #f39c12; background: #2e2005; }
         .pulse-locked { border-color: #e74c3c; color: #e74c3c; background: #2c0b0b; }
@@ -168,7 +183,8 @@
     <div id="start-screen" class="overlay">
         <h1>PULSE GRID</h1>
         <p>Drag blocks to fill rows.</p>
-        <p>Tap anywhere to Start.</p>
+        <p style="font-size: 1rem; color: #888; margin-top: 5px;">Blocks float above your finger for easy placement.</p>
+        <button id="start-btn">TAP TO START</button>
     </div>
 
     <!-- Game Over Screen -->
@@ -180,8 +196,7 @@
 
 <script>
 /**
- * PULSE GRID - ACCESSIBLE EDITION
- * Features: Larger blocks, Float-above-touch, Sticky Snapping
+ * PULSE GRID - MOBILE FULLSCREEN EDITION
  */
 
 // --- Configuration ---
@@ -192,7 +207,7 @@ const GAP = 2;
 // Base size used for logic, but rendering is scaled dynamically
 let BASE_BLOCK_SIZE = 40; 
 let SCALE = 1; 
-let TOUCH_OFFSET_Y = 120; // How far up the piece floats when dragging
+let TOUCH_OFFSET_Y = 120; // How far up the piece floats
 
 const COLORS = [
     '#3498db', '#2ecc71', '#9b59b6', '#f1c40f', '#e67e22', '#e74c3c', '#1abc9c'
@@ -206,6 +221,7 @@ const highScoreEl = document.getElementById('highscore-val');
 const pulseEl = document.getElementById('pulse-indicator');
 const gameOverScreen = document.getElementById('game-over');
 const startScreen = document.getElementById('start-screen');
+const startBtn = document.getElementById('start-btn');
 const finalScoreEl = document.getElementById('final-score');
 
 let grid = []; 
@@ -235,51 +251,73 @@ const SHAPES = [
 // --- Initialization & Resizing ---
 
 function resize() {
-    // Calculate available space
+    // Get actual viewport size (ignoring address bar if possible via innerHeight)
     const maxWidth = window.innerWidth;
-    const maxHeight = window.innerHeight - 250; // Reserve space for UI
+    const maxHeight = window.innerHeight;
     
-    // Ideal width based on columns
-    const idealGridWidth = (BASE_BLOCK_SIZE + GAP) * COLS + GAP;
-    const idealGridHeight = (BASE_BLOCK_SIZE + GAP) * ROWS + GAP + 160; // + Hand area
+    // Reserve vertical space for UI (Score + Status + Bottom Buffer)
+    // We calculate this dynamically to be safe
+    const uiHeight = 180; 
+    
+    // The available height for the canvas
+    const availableHeight = maxHeight - uiHeight;
+
+    // Dimensions of the logical grid including the "Hand" area at bottom
+    // Grid = 10 blocks + Hand Area (~4 blocks height equivalent)
+    const logicalGridWidth = (BASE_BLOCK_SIZE + GAP) * COLS + GAP;
+    const logicalGridHeight = (BASE_BLOCK_SIZE + GAP) * ROWS + GAP + 140; // + Hand area
 
     // Determine scale factor
-    const scaleW = (maxWidth * 0.95) / idealGridWidth;
-    const scaleH = maxHeight / idealGridHeight;
+    const scaleW = (maxWidth * 0.96) / logicalGridWidth; // 96% width for margins
+    const scaleH = (availableHeight * 0.96) / logicalGridHeight;
+    
     SCALE = Math.min(scaleW, scaleH);
 
-    // Limit max scale so it doesn't get absurdly huge on 4k monitors
-    if (SCALE > 1.5) SCALE = 1.5;
+    // Limit max scale
+    if (SCALE > 1.6) SCALE = 1.6;
 
-    canvas.width = idealGridWidth * SCALE;
-    canvas.height = idealGridHeight * SCALE;
+    canvas.width = logicalGridWidth * SCALE;
+    canvas.height = logicalGridHeight * SCALE;
     
-    // Adjust touch offset based on scale to keep relative distance
-    TOUCH_OFFSET_Y = 100 * SCALE;
+    // Adjust touch offset based on scale
+    TOUCH_OFFSET_Y = 110 * SCALE;
 }
 
-window.addEventListener('resize', () => {
-    resize();
-    draw(); // Redraw immediately
-});
-
-function triggerFullscreen() {
+// Mobile Fullscreen Logic
+function attemptFullscreen() {
     const elem = document.documentElement;
     if (elem.requestFullscreen) {
-        elem.requestFullscreen().catch(err => console.log(err));
+        elem.requestFullscreen().catch(err => console.log("Fullscreen blocked or not supported", err));
+    } else if (elem.webkitRequestFullscreen) { /* Safari */
+        elem.webkitRequestFullscreen();
+    } else if (elem.msRequestFullscreen) { /* IE11 */
+        elem.msRequestFullscreen();
     }
 }
 
-startScreen.addEventListener('click', () => {
-    triggerFullscreen();
-    startScreen.classList.add('hidden');
-    init();
-});
-startScreen.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    triggerFullscreen();
-    startScreen.classList.add('hidden');
-    init();
+// Handling the Start Button
+const startGame = (e) => {
+    e.preventDefault(); // Prevent phantom clicks
+    attemptFullscreen();
+    
+    // Add a small delay to allow fullscreen transition to happen before resizing
+    setTimeout(() => {
+        resize();
+        startScreen.classList.add('hidden');
+        init();
+    }, 100);
+};
+
+startBtn.addEventListener('click', startGame);
+startBtn.addEventListener('touchstart', startGame);
+
+window.addEventListener('resize', () => {
+    // Debounce resize
+    clearTimeout(window.resizeTimer);
+    window.resizeTimer = setTimeout(() => {
+        resize();
+        draw();
+    }, 50);
 });
 
 function init() {
@@ -287,14 +325,15 @@ function init() {
     resize();
     resetGame();
     
-    // Input Listeners
+    // Mouse Events
     canvas.addEventListener('mousedown', onMouseDown);
-    window.addEventListener('mousemove', onMouseMove); // Window allows dragging outside canvas bounds slightly
+    window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
     
-    canvas.addEventListener('touchstart', handleTouch);
+    // Touch Events (passive: false is crucial to prevent scrolling)
+    canvas.addEventListener('touchstart', handleTouch, { passive: false });
     window.addEventListener('touchmove', handleTouch, { passive: false });
-    window.addEventListener('touchend', handleTouch);
+    window.addEventListener('touchend', handleTouch, { passive: false });
 
     requestAnimationFrame(loop);
 }
@@ -326,10 +365,10 @@ function createRandomShape(slotIndex) {
     const template = SHAPES[Math.floor(Math.random() * SHAPES.length)];
     const color = COLORS[Math.floor(Math.random() * COLORS.length)];
     
-    // Logical positions (before scaling)
     const slotWidth = ((BASE_BLOCK_SIZE + GAP) * COLS) / 3;
     const centerX = (slotIndex * slotWidth) + (slotWidth / 2);
-    const centerY = ((BASE_BLOCK_SIZE + GAP) * ROWS) + 80;
+    // Position hand slightly lower relative to grid end
+    const centerY = ((BASE_BLOCK_SIZE + GAP) * ROWS) + 70;
 
     const shapeW = template[0].length * BASE_BLOCK_SIZE;
     const shapeH = template.length * BASE_BLOCK_SIZE;
@@ -345,11 +384,11 @@ function createRandomShape(slotIndex) {
     };
 }
 
-// --- Pulse & Game Logic ---
+// --- Logic ---
 
 function triggerPulse() {
     const modes = ['GRAVITY', 'LOCKED', 'ECHO'];
-    if (Math.random() < 0.25) {
+    if (Math.random() < 0.3) {
         pulseMode = 'NORMAL';
         pulseTimer = 0;
     } else {
@@ -380,8 +419,8 @@ function processTurn() {
 }
 
 function spawnLockedCells() {
-    let attempts = 0;
     let locksPlaced = 0;
+    let attempts = 0;
     while(locksPlaced < 3 && attempts < 50) {
         let r = Math.floor(Math.random() * ROWS);
         let c = Math.floor(Math.random() * COLS);
@@ -478,7 +517,7 @@ function updateAnimation() {
     if (gameState !== 'ANIMATING') return;
 
     let active = false;
-    const speed = 25; // Faster gravity
+    const speed = 25; 
 
     fallingPieces.forEach(p => {
         if (p.y < p.targetY) {
@@ -577,24 +616,20 @@ function updateUI() {
     } else {
         pulseEl.classList.add(`pulse-${pulseMode.toLowerCase()}`);
         let desc = "";
-        if (pulseMode === 'GRAVITY') desc = "GRAVITY";
-        if (pulseMode === 'LOCKED') desc = "LOCKED";
-        if (pulseMode === 'ECHO') desc = "ECHO";
-        pulseEl.innerText = `${desc} - ${pulseTimer}`;
+        if (pulseMode === 'GRAVITY') desc = "GRAVITY SHIFT";
+        if (pulseMode === 'LOCKED') desc = "GRID LOCKED";
+        if (pulseMode === 'ECHO') desc = "ECHO BLAST";
+        pulseEl.innerText = `${desc} (${pulseTimer})`;
     }
 }
 
-// --- Input Handling (Enhanced for Accessibility) ---
+// --- Input Handling ---
 
 function getPointerPos(e) {
-    // Determine client coords
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    
-    // Get canvas bounds
     const rect = canvas.getBoundingClientRect();
     
-    // Calculate unscaled logical coordinates
     return { 
         x: (clientX - rect.left) / SCALE, 
         y: (clientY - rect.top) / SCALE 
@@ -608,16 +643,13 @@ function onMouseDown(e) {
     for (let shape of hand) {
         const sW = shape.matrix[0].length * BASE_BLOCK_SIZE;
         const sH = shape.matrix.length * BASE_BLOCK_SIZE;
-        
-        // Use a generous hitbox (padding)
-        const padding = 20;
+        const padding = 30; // Extra padding for easy grabbing
+
         if (pos.x > shape.x - padding && pos.x < shape.x + sW + padding &&
             pos.y > shape.y - padding && pos.y < shape.y + sH + padding) {
             
             draggingShape = shape;
             shape.isDragging = true;
-            // Store offset relative to the shape's Top-Left
-            // We also add an offset so the piece visually jumps UP above the finger
             dragX = pos.x - shape.x;
             dragY = pos.y - shape.y;
             break;
@@ -630,42 +662,21 @@ function onMouseMove(e) {
     const pos = getPointerPos(e);
     
     draggingShape.x = pos.x - dragX;
-    
-    // Apply Visual Offset for touch screens/accessibility
-    // The Logical Y is where the piece *is*, but we want to render it higher?
-    // Actually simpler: We drag the Logical Y, but we shift the render.
-    // Wait, simpler: We want the piece to be 'above' the finger.
-    // So logical Y = finger Y - offset.
+    // Apply offset so finger doesn't cover block
     draggingShape.y = pos.y - dragY - (TOUCH_OFFSET_Y / SCALE);
 }
 
 function onMouseUp(e) {
     if (!draggingShape) return;
     
-    // Snap Logic: find center of shape
-    const shapeCenterX = draggingShape.x + (draggingShape.matrix[0].length * BASE_BLOCK_SIZE)/2;
-    const shapeCenterY = draggingShape.y + (draggingShape.matrix.length * BASE_BLOCK_SIZE)/2;
-
-    const gridX = Math.floor( (shapeCenterX - GAP) / (BASE_BLOCK_SIZE + GAP) );
-    const gridY = Math.floor( (shapeCenterY - GAP) / (BASE_BLOCK_SIZE + GAP) );
-
-    // Top-left based alignment for precision
+    // Calculate Grid Position based on Top-Left
     const preciseGridX = Math.round(draggingShape.x / (BASE_BLOCK_SIZE + GAP));
     const preciseGridY = Math.round(draggingShape.y / (BASE_BLOCK_SIZE + GAP));
     
-    // Try Center snapping first (more intuitive), fallback to Top-Left
-    let targetX = gridX;
-    let targetY = gridY;
-    
-    // Center logic can be tricky for even-width blocks.
-    // Let's use the precise top-left which is robust if visual feedback is good.
-    targetX = preciseGridX;
-    targetY = preciseGridY;
-
-    if (canPlace(draggingShape, targetX, targetY)) {
-        placeShape(draggingShape, targetX, targetY);
+    if (canPlace(draggingShape, preciseGridX, preciseGridY)) {
+        placeShape(draggingShape, preciseGridX, preciseGridY);
     } else {
-        // Return home animation
+        // Return to hand
         draggingShape.x = draggingShape.homeX;
         draggingShape.y = draggingShape.homeY;
     }
@@ -675,8 +686,11 @@ function onMouseUp(e) {
 }
 
 function handleTouch(e) {
+    // Prevent default browser scrolling/zooming
+    if(e.type === 'touchmove') e.preventDefault();
+    
     if (e.type === 'touchstart') onMouseDown(e);
-    if (e.type === 'touchmove') { e.preventDefault(); onMouseMove(e); }
+    if (e.type === 'touchmove') onMouseMove(e);
     if (e.type === 'touchend') onMouseUp(e);
 }
 
@@ -686,7 +700,7 @@ function draw() {
     updateAnimation(); 
 
     ctx.save();
-    ctx.scale(SCALE, SCALE); // Apply Global Scale
+    ctx.scale(SCALE, SCALE); 
     
     ctx.clearRect(0, 0, canvas.width/SCALE, canvas.height/SCALE);
 
@@ -722,7 +736,7 @@ function draw() {
         }
     }
 
-    // Falling Pieces
+    // Animating Pieces
     fallingPieces.forEach(p => {
         ctx.fillStyle = p.color;
         ctx.fillRect(p.x, p.y, BASE_BLOCK_SIZE, BASE_BLOCK_SIZE);
@@ -739,11 +753,11 @@ function draw() {
         ctx.strokeRect(0, 0, COLS * (BASE_BLOCK_SIZE+GAP) + GAP, ROWS * (BASE_BLOCK_SIZE+GAP) + GAP);
     }
 
-    // Divider
+    // Hand Divider
     ctx.fillStyle = '#444';
-    ctx.fillRect(0, ROWS * (BASE_BLOCK_SIZE+GAP) + GAP + 20, canvas.width/SCALE, 4);
+    ctx.fillRect(0, ROWS * (BASE_BLOCK_SIZE+GAP) + GAP + 10, (BASE_BLOCK_SIZE * COLS) + 30, 2);
 
-    // Shapes in Hand
+    // Shapes
     for (let shape of hand) {
         drawShape(shape);
     }
@@ -754,9 +768,8 @@ function draw() {
         const preciseGridY = Math.round(draggingShape.y / (BASE_BLOCK_SIZE + GAP));
         
         if (canPlace(draggingShape, preciseGridX, preciseGridY)) {
-            // Draw Ghost
             ctx.globalAlpha = 0.5;
-            drawShapeAtGrid(draggingShape, preciseGridX, preciseGridY, null, true); // True for ghost mode
+            drawShapeAtGrid(draggingShape, preciseGridX, preciseGridY, null, true);
             ctx.globalAlpha = 1.0;
         }
     }
@@ -775,8 +788,6 @@ function drawShape(shape) {
             if (shape.matrix[r][c] === 1) {
                 let x = shape.x + c * BASE_BLOCK_SIZE;
                 let y = shape.y + r * BASE_BLOCK_SIZE;
-                
-                // If dragging, draw larger
                 let size = BASE_BLOCK_SIZE - 2; 
 
                 ctx.fillStyle = shape.color;
@@ -799,7 +810,6 @@ function drawShapeAtGrid(shape, gridX, gridY, overrideColor, isGhost) {
                 let y = (gridY + r) * (BASE_BLOCK_SIZE + GAP) + GAP;
                 
                 if (isGhost) {
-                    // White outline ghost
                     ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
                     ctx.fillRect(x, y, BASE_BLOCK_SIZE, BASE_BLOCK_SIZE);
                     ctx.strokeStyle = '#fff';
