@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pulse Grid - Animated</title>
+    <title>Pulse Grid - Fullscreen</title>
     <style>
         :root {
             --bg-color: #121212;
@@ -35,6 +35,7 @@
             justify-content: space-between;
             padding: 10px 20px;
             box-sizing: border-box;
+            z-index: 2;
         }
 
         .stat-box {
@@ -63,6 +64,7 @@
             transition: all 0.3s ease;
             width: 90%;
             max-width: 400px;
+            z-index: 2;
         }
 
         canvas {
@@ -71,25 +73,40 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             margin: 10px 0;
             cursor: pointer;
+            z-index: 1;
         }
 
-        #game-over {
+        /* Overlays */
+        .overlay {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.85);
+            background: rgba(0,0,0,0.9);
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            visibility: hidden;
-            z-index: 10;
+            z-index: 100;
+            transition: opacity 0.3s;
         }
 
-        #game-over.visible {
-            visibility: visible;
+        .hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            color: var(--highlight);
+            text-shadow: 0 0 15px var(--highlight);
+        }
+
+        p {
+            font-size: 1.2rem;
+            color: #aaa;
         }
 
         button {
@@ -102,10 +119,12 @@
             font-weight: bold;
             cursor: pointer;
             margin-top: 20px;
+            box-shadow: 0 0 15px var(--highlight);
         }
 
         button:hover {
             filter: brightness(1.1);
+            transform: scale(1.05);
         }
 
         /* Pulse Effects classes */
@@ -118,6 +137,7 @@
 </head>
 <body>
 
+    <!-- UI Elements -->
     <div id="ui-container">
         <div class="stat-box">
             <div class="label">Score</div>
@@ -130,18 +150,25 @@
     </div>
 
     <div id="pulse-indicator" class="pulse-normal">STATUS: NORMAL GRID</div>
-
     <canvas id="gameCanvas"></canvas>
 
-    <div id="game-over">
-        <h1>GRID LOCKED</h1>
+    <!-- Start Screen -->
+    <div id="start-screen" class="overlay">
+        <h1>PULSE GRID</h1>
+        <p>Tap anywhere to Initialize</p>
+        <p style="font-size: 0.8rem; margin-top: 50px; opacity: 0.6">Fullscreen Enabled</p>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="game-over" class="overlay hidden">
+        <h1 style="color: #e74c3c; text-shadow: 0 0 15px #e74c3c;">GRID LOCKED</h1>
         <p>Final Score: <span id="final-score">0</span></p>
         <button onclick="resetGame()">REBOOT SYSTEM</button>
     </div>
 
 <script>
 /**
- * PULSE GRID - ANIMATED EDITION
+ * PULSE GRID - FULLSCREEN EDITION
  */
 
 // --- Configuration ---
@@ -164,13 +191,14 @@ const scoreEl = document.getElementById('score-val');
 const highScoreEl = document.getElementById('highscore-val');
 const pulseEl = document.getElementById('pulse-indicator');
 const gameOverScreen = document.getElementById('game-over');
+const startScreen = document.getElementById('start-screen');
 const finalScoreEl = document.getElementById('final-score');
 
 canvas.width = CANVAS_WIDTH;
 canvas.height = CANVAS_HEIGHT;
 
-let grid = []; // 10x10 array
-let hand = []; // Array of 3 shapes
+let grid = []; 
+let hand = []; 
 let score = 0;
 let highScore = localStorage.getItem('pulseHigh') || 0;
 let moves = 0;
@@ -178,11 +206,8 @@ let draggingShape = null;
 let dragOffsetX = 0;
 let dragOffsetY = 0;
 
-// State management for animations
-let gameState = 'IDLE'; // IDLE, ANIMATING, GAMEOVER
-let fallingPieces = []; // Array to hold pieces currently animating down
-
-// Pulse System State
+let gameState = 'START'; // START, IDLE, ANIMATING, GAMEOVER
+let fallingPieces = []; 
 let pulseMode = 'NORMAL'; 
 let pulseTimer = 0; 
 let lockedCells = []; 
@@ -194,12 +219,39 @@ const SHAPES = [
     [[1,1,1],[0,1,0]], [[1,1,1],[1,0,0]], [[1,1,1],[0,0,1]]
 ];
 
-// --- Core Functions ---
+// --- Initialization & Fullscreen ---
+
+function triggerFullscreen() {
+    const elem = document.documentElement;
+    if (elem.requestFullscreen) {
+        elem.requestFullscreen().catch(err => console.log(err));
+    } else if (elem.webkitRequestFullscreen) { /* Safari */
+        elem.webkitRequestFullscreen();
+    } else if (elem.msRequestFullscreen) { /* IE11 */
+        elem.msRequestFullscreen();
+    }
+}
+
+// Handle Start
+startScreen.addEventListener('click', () => {
+    triggerFullscreen();
+    startScreen.classList.add('hidden');
+    init();
+});
+
+// Also support touch for mobile start
+startScreen.addEventListener('touchstart', (e) => {
+    e.preventDefault(); // Prevent double firing
+    triggerFullscreen();
+    startScreen.classList.add('hidden');
+    init();
+});
 
 function init() {
     highScoreEl.innerText = highScore;
     resetGame();
     
+    // Attach Game Listeners
     canvas.addEventListener('mousedown', onMouseDown);
     canvas.addEventListener('mousemove', onMouseMove);
     canvas.addEventListener('mouseup', onMouseUp);
@@ -221,7 +273,7 @@ function resetGame() {
     gameState = 'IDLE';
     fallingPieces = [];
     updateUI();
-    gameOverScreen.classList.remove('visible');
+    gameOverScreen.classList.add('hidden');
     
     spawnHand();
 }
@@ -345,7 +397,7 @@ function checkLines() {
         rowsToClear = [...rowsToClear, ...echoRows];
     }
 
-    // Clear
+    // Clear Logic
     rowsToClear.forEach(r => { for(let c=0; c<COLS; c++) grid[r][c] = null; });
     colsToClear.forEach(c => { for(let r=0; r<ROWS; r++) grid[r][c] = null; });
 
@@ -360,53 +412,35 @@ function checkLines() {
     if (pulseMode === 'GRAVITY') {
         prepareGravityAnimation();
     } else {
-        // Just in case we cleared lines but didn't trigger gravity, check GAME OVER
         checkGameOver();
     }
 }
 
-// Calculates where blocks should fall and sets up the animation state
 function prepareGravityAnimation() {
     fallingPieces = [];
     let hasMovement = false;
 
-    // Iterate over every column
     for (let c = 0; c < COLS; c++) {
-        // writeRow tracks the next available slot from the bottom up
         let writeRow = ROWS - 1;
-
-        // Iterate from bottom to top
         for (let r = ROWS - 1; r >= 0; r--) {
-            // If we hit a locked cell, it acts as a floor. 
-            // The next writeable slot is immediately above it.
             if (isLocked(r, c)) {
                 writeRow = r - 1;
                 continue;
             }
-
-            // If we find a block
             if (grid[r][c] !== null) {
-                // If the block is not at the writeRow (meaning there is space below it)
                 if (r !== writeRow) {
-                    // It needs to move
                     hasMovement = true;
-                    
                     fallingPieces.push({
                         color: grid[r][c],
                         c: c,
                         x: c * (BLOCK_SIZE + GAP) + GAP,
-                        y: r * (BLOCK_SIZE + GAP) + GAP, // Current visual Y
-                        targetY: writeRow * (BLOCK_SIZE + GAP) + GAP, // Destination visual Y
-                        targetR: writeRow // Destination Grid Row
+                        y: r * (BLOCK_SIZE + GAP) + GAP, 
+                        targetY: writeRow * (BLOCK_SIZE + GAP) + GAP, 
+                        targetR: writeRow 
                     });
-
-                    // Remove from logical grid (it exists in fallingPieces now)
                     grid[r][c] = null; 
-                } else {
-                    // Block is already in the lowest possible position
-                    // Just leave it in the grid, but update writeRow
                 }
-                writeRow--; // Move the write head up
+                writeRow--; 
             }
         }
     }
@@ -418,34 +452,26 @@ function prepareGravityAnimation() {
     }
 }
 
-// Runs every frame during animation to move blocks down
 function updateAnimation() {
     if (gameState !== 'ANIMATING') return;
 
     let active = false;
-    const speed = 15; // Speed of fall
+    const speed = 20; // Fall speed
 
     fallingPieces.forEach(p => {
         if (p.y < p.targetY) {
             p.y += speed;
             active = true;
-            // Snap to bottom if we overshot
-            if (p.y >= p.targetY) {
-                p.y = p.targetY;
-            }
+            if (p.y >= p.targetY) p.y = p.targetY;
         }
     });
 
     if (!active) {
-        // Animation finished, lock pieces back into grid
         fallingPieces.forEach(p => {
             grid[p.targetR][p.c] = p.color;
         });
         fallingPieces = [];
         gameState = 'IDLE';
-        
-        // After falling, check if new lines were formed
-        // (Recursive check disabled for simplicity, but could be added here)
         checkGameOver();
     }
 }
@@ -485,7 +511,7 @@ function placeShape(shape, gridX, gridY) {
 }
 
 function checkGameOver() {
-    if (gameState === 'ANIMATING') return; // Don't check during animation
+    if (gameState === 'ANIMATING') return; 
 
     let canMove = false;
     if(hand.length === 0) return;
@@ -510,7 +536,7 @@ function checkGameOver() {
             highScore = score;
             localStorage.setItem('pulseHigh', highScore);
         }
-        gameOverScreen.classList.add('visible');
+        gameOverScreen.classList.remove('hidden');
     }
 }
 
@@ -530,10 +556,10 @@ function updateUI() {
     } else {
         pulseEl.classList.add(`pulse-${pulseMode.toLowerCase()}`);
         let desc = "";
-        if (pulseMode === 'GRAVITY') desc = "GRAVITY SHIFT (Blocks Fall)";
-        if (pulseMode === 'LOCKED') desc = "GRID CORRUPTION (Cells Blocked)";
-        if (pulseMode === 'ECHO') desc = "ECHO CLEAR (Radius +1)";
-        pulseEl.innerText = `${desc} - ${pulseTimer} turns left`;
+        if (pulseMode === 'GRAVITY') desc = "GRAVITY SHIFT";
+        if (pulseMode === 'LOCKED') desc = "GRID CORRUPTION";
+        if (pulseMode === 'ECHO') desc = "ECHO CLEAR";
+        pulseEl.innerText = `${desc} - ${pulseTimer}`;
     }
 }
 
@@ -547,7 +573,7 @@ function getPointerPos(e) {
 }
 
 function onMouseDown(e) {
-    if (gameState !== 'IDLE') return; // Block input if animating or game over
+    if (gameState !== 'IDLE') return; 
     const pos = getPointerPos(e);
     
     for (let shape of hand) {
@@ -596,21 +622,19 @@ function handleTouch(e) {
 // --- Rendering ---
 
 function draw() {
-    updateAnimation(); // Move falling blocks logic
+    updateAnimation(); 
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw Static Grid
+    // Grid
     for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
             let x = c * (BLOCK_SIZE + GAP) + GAP;
             let y = r * (BLOCK_SIZE + GAP) + GAP;
 
-            // Background of cell
             ctx.fillStyle = '#2a2a30';
             ctx.fillRect(x, y, BLOCK_SIZE, BLOCK_SIZE);
 
-            // Locked Cell
             if (isLocked(r, c)) {
                 ctx.fillStyle = '#222';
                 ctx.fillRect(x, y, BLOCK_SIZE, BLOCK_SIZE);
@@ -624,11 +648,9 @@ function draw() {
                 ctx.stroke();
             }
 
-            // Filled Cell (Static)
             if (grid[r][c]) {
                 ctx.fillStyle = grid[r][c];
                 ctx.fillRect(x, y, BLOCK_SIZE, BLOCK_SIZE);
-                // Bevel
                 ctx.fillStyle = 'rgba(255,255,255,0.2)';
                 ctx.fillRect(x, y, BLOCK_SIZE, 4);
                 ctx.fillRect(x, y, 4, BLOCK_SIZE);
@@ -636,17 +658,16 @@ function draw() {
         }
     }
 
-    // Draw Falling Pieces (Animation)
+    // Animation
     fallingPieces.forEach(p => {
         ctx.fillStyle = p.color;
         ctx.fillRect(p.x, p.y, BLOCK_SIZE, BLOCK_SIZE);
-        // Bevel for falling pieces
         ctx.fillStyle = 'rgba(255,255,255,0.2)';
         ctx.fillRect(p.x, p.y, BLOCK_SIZE, 4);
         ctx.fillRect(p.x, p.y, 4, BLOCK_SIZE);
     });
 
-    // Draw Grid Border/Effects
+    // Pulse FX
     if (pulseMode !== 'NORMAL') {
         ctx.strokeStyle = pulseMode === 'GRAVITY' ? '#f39c12' : 
                           pulseMode === 'LOCKED' ? '#e74c3c' : '#9b59b6';
@@ -654,20 +675,14 @@ function draw() {
         ctx.strokeRect(0, 0, COLS * (BLOCK_SIZE+GAP) + GAP, ROWS * (BLOCK_SIZE+GAP) + GAP);
     }
 
-    // Hand Separator
     ctx.fillStyle = '#333';
     ctx.fillRect(0, ROWS * (BLOCK_SIZE+GAP) + GAP, canvas.width, 2);
 
-    // Shapes in Hand
-    for (let shape of hand) {
-        drawShape(shape);
-    }
+    for (let shape of hand) drawShape(shape);
 
-    // Hover Preview
     if (draggingShape && gameState === 'IDLE') {
         const preciseGridX = Math.round(draggingShape.x / (BLOCK_SIZE + GAP));
         const preciseGridY = Math.round(draggingShape.y / (BLOCK_SIZE + GAP));
-        
         if (canPlace(draggingShape, preciseGridX, preciseGridY)) {
             ctx.globalAlpha = 0.3;
             drawShapeAtGrid(draggingShape, preciseGridX, preciseGridY, '#fff');
@@ -685,24 +700,20 @@ function drawShape(shape) {
         ctx.shadowOffsetX = 5;
         ctx.shadowOffsetY = 5;
     }
-
     for (let r = 0; r < shape.matrix.length; r++) {
         for (let c = 0; c < shape.matrix[r].length; c++) {
             if (shape.matrix[r][c] === 1) {
                 let x = shape.x + c * BLOCK_SIZE;
                 let y = shape.y + r * BLOCK_SIZE;
                 let size = BLOCK_SIZE - 2; 
-
                 ctx.fillStyle = shape.color;
                 ctx.fillRect(x, y, size, size);
-                
                 ctx.strokeStyle = 'rgba(255,255,255,0.3)';
                 ctx.lineWidth = 1;
                 ctx.strokeRect(x,y,size,size);
             }
         }
     }
-    
     ctx.shadowColor = 'transparent';
     ctx.shadowBlur = 0;
     ctx.shadowOffsetX = 0;
@@ -726,8 +737,8 @@ function loop() {
     draw();
 }
 
-// Start
-init();
+// Note: Intentionally not calling init() here. 
+// Init is called by the start screen event listener.
 
 </script>
 </body>
