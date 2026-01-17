@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pulse Grid - Fullscreen</title>
+    <title>Pulse Grid - Accessible</title>
     <style>
         :root {
             --bg-color: #121212;
@@ -30,50 +30,60 @@
 
         #ui-container {
             width: 100%;
-            max-width: 500px;
+            max-width: 600px;
             display: flex;
             justify-content: space-between;
-            padding: 10px 20px;
+            padding: 15px 20px;
             box-sizing: border-box;
             z-index: 2;
         }
 
         .stat-box {
             text-align: center;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px 20px;
+            border-radius: 12px;
+            min-width: 100px;
         }
 
         .label {
-            font-size: 0.8rem;
+            font-size: 1rem;
             text-transform: uppercase;
-            color: #888;
+            color: #aaa;
+            letter-spacing: 1px;
         }
 
         .value {
-            font-size: 1.5rem;
+            font-size: 1.8rem;
             font-weight: bold;
+            color: #fff;
         }
 
         #pulse-indicator {
             margin-top: 5px;
-            padding: 8px 16px;
+            padding: 12px 20px;
             background: #333;
-            border-radius: 20px;
-            font-size: 0.9rem;
+            border-radius: 25px;
+            font-size: 1.1rem;
+            font-weight: bold;
             text-align: center;
-            border: 1px solid #444;
+            border: 2px solid #555;
             transition: all 0.3s ease;
             width: 90%;
-            max-width: 400px;
+            max-width: 500px;
             z-index: 2;
         }
 
         canvas {
             background-color: var(--grid-bg);
-            border-radius: 8px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            margin: 10px 0;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            margin: 15px 0;
             cursor: pointer;
             z-index: 1;
+            /* Canvas size is handled by JS, but max-width ensures it fits */
+            max-width: 98vw;
+            max-height: 80vh;
         }
 
         /* Overlays */
@@ -83,13 +93,14 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.9);
+            background: rgba(18, 18, 18, 0.95);
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             z-index: 100;
             transition: opacity 0.3s;
+            text-align: center;
         }
 
         .hidden {
@@ -98,28 +109,30 @@
         }
 
         h1 {
-            font-size: 3rem;
-            margin-bottom: 10px;
+            font-size: 3.5rem;
+            margin-bottom: 20px;
             color: var(--highlight);
-            text-shadow: 0 0 15px var(--highlight);
+            text-shadow: 0 0 20px var(--highlight);
         }
 
         p {
-            font-size: 1.2rem;
-            color: #aaa;
+            font-size: 1.4rem;
+            color: #ddd;
+            margin: 10px 20px;
+            line-height: 1.5;
         }
 
         button {
-            padding: 15px 30px;
-            font-size: 1.2rem;
+            padding: 20px 40px;
+            font-size: 1.4rem;
             background: var(--highlight);
             border: none;
-            border-radius: 5px;
+            border-radius: 12px;
             color: #000;
             font-weight: bold;
             cursor: pointer;
-            margin-top: 20px;
-            box-shadow: 0 0 15px var(--highlight);
+            margin-top: 30px;
+            box-shadow: 0 0 20px rgba(0, 255, 242, 0.4);
         }
 
         button:hover {
@@ -127,11 +140,10 @@
             transform: scale(1.05);
         }
 
-        /* Pulse Effects classes */
-        .pulse-normal { border-color: #444; color: #fff; box-shadow: none; }
-        .pulse-gravity { border-color: #f39c12; color: #f39c12; box-shadow: 0 0 15px #f39c12; }
-        .pulse-locked { border-color: #e74c3c; color: #e74c3c; box-shadow: 0 0 15px #e74c3c; }
-        .pulse-echo { border-color: #9b59b6; color: #9b59b6; box-shadow: 0 0 15px #9b59b6; }
+        .pulse-normal { border-color: #555; color: #fff; }
+        .pulse-gravity { border-color: #f39c12; color: #f39c12; background: #2e2005; }
+        .pulse-locked { border-color: #e74c3c; color: #e74c3c; background: #2c0b0b; }
+        .pulse-echo { border-color: #9b59b6; color: #9b59b6; background: #1a0524; }
         
     </style>
 </head>
@@ -144,41 +156,43 @@
             <div class="value" id="score-val">0</div>
         </div>
         <div class="stat-box">
-            <div class="label">High Score</div>
+            <div class="label">Best</div>
             <div class="value" id="highscore-val">0</div>
         </div>
     </div>
 
-    <div id="pulse-indicator" class="pulse-normal">STATUS: NORMAL GRID</div>
+    <div id="pulse-indicator" class="pulse-normal">STATUS: NORMAL</div>
     <canvas id="gameCanvas"></canvas>
 
     <!-- Start Screen -->
     <div id="start-screen" class="overlay">
         <h1>PULSE GRID</h1>
-        <p>Tap anywhere to Initialize</p>
-        <p style="font-size: 0.8rem; margin-top: 50px; opacity: 0.6">Fullscreen Enabled</p>
+        <p>Drag blocks to fill rows.</p>
+        <p>Tap anywhere to Start.</p>
     </div>
 
     <!-- Game Over Screen -->
     <div id="game-over" class="overlay hidden">
         <h1 style="color: #e74c3c; text-shadow: 0 0 15px #e74c3c;">GRID LOCKED</h1>
         <p>Final Score: <span id="final-score">0</span></p>
-        <button onclick="resetGame()">REBOOT SYSTEM</button>
+        <button onclick="resetGame()">PLAY AGAIN</button>
     </div>
 
 <script>
 /**
- * PULSE GRID - FULLSCREEN EDITION
+ * PULSE GRID - ACCESSIBLE EDITION
+ * Features: Larger blocks, Float-above-touch, Sticky Snapping
  */
 
 // --- Configuration ---
 const COLS = 10;
 const ROWS = 10;
-const BLOCK_SIZE = 35; 
 const GAP = 2; 
-const HAND_HEIGHT = 150; 
-const CANVAS_WIDTH = (BLOCK_SIZE + GAP) * COLS + GAP;
-const CANVAS_HEIGHT = (BLOCK_SIZE + GAP) * ROWS + GAP + HAND_HEIGHT;
+
+// Base size used for logic, but rendering is scaled dynamically
+let BASE_BLOCK_SIZE = 40; 
+let SCALE = 1; 
+let TOUCH_OFFSET_Y = 120; // How far up the piece floats when dragging
 
 const COLORS = [
     '#3498db', '#2ecc71', '#9b59b6', '#f1c40f', '#e67e22', '#e74c3c', '#1abc9c'
@@ -194,19 +208,18 @@ const gameOverScreen = document.getElementById('game-over');
 const startScreen = document.getElementById('start-screen');
 const finalScoreEl = document.getElementById('final-score');
 
-canvas.width = CANVAS_WIDTH;
-canvas.height = CANVAS_HEIGHT;
-
 let grid = []; 
 let hand = []; 
 let score = 0;
 let highScore = localStorage.getItem('pulseHigh') || 0;
 let moves = 0;
-let draggingShape = null;
-let dragOffsetX = 0;
-let dragOffsetY = 0;
 
-let gameState = 'START'; // START, IDLE, ANIMATING, GAMEOVER
+// Dragging State
+let draggingShape = null;
+let dragX = 0;
+let dragY = 0;
+
+let gameState = 'START'; 
 let fallingPieces = []; 
 let pulseMode = 'NORMAL'; 
 let pulseTimer = 0; 
@@ -219,29 +232,51 @@ const SHAPES = [
     [[1,1,1],[0,1,0]], [[1,1,1],[1,0,0]], [[1,1,1],[0,0,1]]
 ];
 
-// --- Initialization & Fullscreen ---
+// --- Initialization & Resizing ---
+
+function resize() {
+    // Calculate available space
+    const maxWidth = window.innerWidth;
+    const maxHeight = window.innerHeight - 250; // Reserve space for UI
+    
+    // Ideal width based on columns
+    const idealGridWidth = (BASE_BLOCK_SIZE + GAP) * COLS + GAP;
+    const idealGridHeight = (BASE_BLOCK_SIZE + GAP) * ROWS + GAP + 160; // + Hand area
+
+    // Determine scale factor
+    const scaleW = (maxWidth * 0.95) / idealGridWidth;
+    const scaleH = maxHeight / idealGridHeight;
+    SCALE = Math.min(scaleW, scaleH);
+
+    // Limit max scale so it doesn't get absurdly huge on 4k monitors
+    if (SCALE > 1.5) SCALE = 1.5;
+
+    canvas.width = idealGridWidth * SCALE;
+    canvas.height = idealGridHeight * SCALE;
+    
+    // Adjust touch offset based on scale to keep relative distance
+    TOUCH_OFFSET_Y = 100 * SCALE;
+}
+
+window.addEventListener('resize', () => {
+    resize();
+    draw(); // Redraw immediately
+});
 
 function triggerFullscreen() {
     const elem = document.documentElement;
     if (elem.requestFullscreen) {
         elem.requestFullscreen().catch(err => console.log(err));
-    } else if (elem.webkitRequestFullscreen) { /* Safari */
-        elem.webkitRequestFullscreen();
-    } else if (elem.msRequestFullscreen) { /* IE11 */
-        elem.msRequestFullscreen();
     }
 }
 
-// Handle Start
 startScreen.addEventListener('click', () => {
     triggerFullscreen();
     startScreen.classList.add('hidden');
     init();
 });
-
-// Also support touch for mobile start
 startScreen.addEventListener('touchstart', (e) => {
-    e.preventDefault(); // Prevent double firing
+    e.preventDefault();
     triggerFullscreen();
     startScreen.classList.add('hidden');
     init();
@@ -249,16 +284,17 @@ startScreen.addEventListener('touchstart', (e) => {
 
 function init() {
     highScoreEl.innerText = highScore;
+    resize();
     resetGame();
     
-    // Attach Game Listeners
+    // Input Listeners
     canvas.addEventListener('mousedown', onMouseDown);
-    canvas.addEventListener('mousemove', onMouseMove);
-    canvas.addEventListener('mouseup', onMouseUp);
+    window.addEventListener('mousemove', onMouseMove); // Window allows dragging outside canvas bounds slightly
+    window.addEventListener('mouseup', onMouseUp);
     
     canvas.addEventListener('touchstart', handleTouch);
-    canvas.addEventListener('touchmove', handleTouch);
-    canvas.addEventListener('touchend', handleTouch);
+    window.addEventListener('touchmove', handleTouch, { passive: false });
+    window.addEventListener('touchend', handleTouch);
 
     requestAnimationFrame(loop);
 }
@@ -290,13 +326,13 @@ function createRandomShape(slotIndex) {
     const template = SHAPES[Math.floor(Math.random() * SHAPES.length)];
     const color = COLORS[Math.floor(Math.random() * COLORS.length)];
     
-    const totalWidth = CANVAS_WIDTH;
-    const slotWidth = totalWidth / 3;
+    // Logical positions (before scaling)
+    const slotWidth = ((BASE_BLOCK_SIZE + GAP) * COLS) / 3;
     const centerX = (slotIndex * slotWidth) + (slotWidth / 2);
-    const centerY = (BLOCK_SIZE * ROWS) + (HAND_HEIGHT / 2);
+    const centerY = ((BASE_BLOCK_SIZE + GAP) * ROWS) + 80;
 
-    const shapeW = template[0].length * BLOCK_SIZE;
-    const shapeH = template.length * BLOCK_SIZE;
+    const shapeW = template[0].length * BASE_BLOCK_SIZE;
+    const shapeH = template.length * BASE_BLOCK_SIZE;
 
     return {
         matrix: template,
@@ -309,11 +345,11 @@ function createRandomShape(slotIndex) {
     };
 }
 
-// --- Pulse Mechanics ---
+// --- Pulse & Game Logic ---
 
 function triggerPulse() {
     const modes = ['GRAVITY', 'LOCKED', 'ECHO'];
-    if (Math.random() < 0.2) {
+    if (Math.random() < 0.25) {
         pulseMode = 'NORMAL';
         pulseTimer = 0;
     } else {
@@ -331,7 +367,6 @@ function triggerPulse() {
 
 function processTurn() {
     moves++;
-    
     if (pulseMode !== 'NORMAL') {
         pulseTimer--;
         if (pulseTimer <= 0) {
@@ -362,28 +397,17 @@ function isLocked(r, c) {
     return lockedCells.some(cell => cell.r === r && cell.c === c);
 }
 
-// --- Game Logic ---
-
 function checkLines() {
-    let linesCleared = 0;
     let rowsToClear = [];
     let colsToClear = [];
 
-    // Check Rows
     for (let r = 0; r < ROWS; r++) {
-        if (grid[r].every(cell => cell !== null)) {
-            rowsToClear.push(r);
-        }
+        if (grid[r].every(cell => cell !== null)) rowsToClear.push(r);
     }
-
-    // Check Cols
     for (let c = 0; c < COLS; c++) {
         let colFilled = true;
         for (let r = 0; r < ROWS; r++) {
-            if (grid[r][c] === null) {
-                colFilled = false;
-                break;
-            }
+            if (grid[r][c] === null) { colFilled = false; break; }
         }
         if (colFilled) colsToClear.push(c);
     }
@@ -397,7 +421,6 @@ function checkLines() {
         rowsToClear = [...rowsToClear, ...echoRows];
     }
 
-    // Clear Logic
     rowsToClear.forEach(r => { for(let c=0; c<COLS; c++) grid[r][c] = null; });
     colsToClear.forEach(c => { for(let r=0; r<ROWS; r++) grid[r][c] = null; });
 
@@ -408,7 +431,6 @@ function checkLines() {
         addScore(points);
     }
 
-    // Trigger Gravity Animation if active
     if (pulseMode === 'GRAVITY') {
         prepareGravityAnimation();
     } else {
@@ -433,9 +455,9 @@ function prepareGravityAnimation() {
                     fallingPieces.push({
                         color: grid[r][c],
                         c: c,
-                        x: c * (BLOCK_SIZE + GAP) + GAP,
-                        y: r * (BLOCK_SIZE + GAP) + GAP, 
-                        targetY: writeRow * (BLOCK_SIZE + GAP) + GAP, 
+                        x: c * (BASE_BLOCK_SIZE + GAP) + GAP,
+                        y: r * (BASE_BLOCK_SIZE + GAP) + GAP, 
+                        targetY: writeRow * (BASE_BLOCK_SIZE + GAP) + GAP, 
                         targetR: writeRow 
                     });
                     grid[r][c] = null; 
@@ -456,7 +478,7 @@ function updateAnimation() {
     if (gameState !== 'ANIMATING') return;
 
     let active = false;
-    const speed = 20; // Fall speed
+    const speed = 25; // Faster gravity
 
     fallingPieces.forEach(p => {
         if (p.y < p.targetY) {
@@ -475,7 +497,6 @@ function updateAnimation() {
         checkGameOver();
     }
 }
-
 
 function canPlace(shape, gridX, gridY) {
     for (let r = 0; r < shape.matrix.length; r++) {
@@ -556,20 +577,28 @@ function updateUI() {
     } else {
         pulseEl.classList.add(`pulse-${pulseMode.toLowerCase()}`);
         let desc = "";
-        if (pulseMode === 'GRAVITY') desc = "GRAVITY SHIFT";
-        if (pulseMode === 'LOCKED') desc = "GRID CORRUPTION";
-        if (pulseMode === 'ECHO') desc = "ECHO CLEAR";
+        if (pulseMode === 'GRAVITY') desc = "GRAVITY";
+        if (pulseMode === 'LOCKED') desc = "LOCKED";
+        if (pulseMode === 'ECHO') desc = "ECHO";
         pulseEl.innerText = `${desc} - ${pulseTimer}`;
     }
 }
 
-// --- Input Handling ---
+// --- Input Handling (Enhanced for Accessibility) ---
 
 function getPointerPos(e) {
-    const rect = canvas.getBoundingClientRect();
+    // Determine client coords
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    return { x: clientX - rect.left, y: clientY - rect.top };
+    
+    // Get canvas bounds
+    const rect = canvas.getBoundingClientRect();
+    
+    // Calculate unscaled logical coordinates
+    return { 
+        x: (clientX - rect.left) / SCALE, 
+        y: (clientY - rect.top) / SCALE 
+    };
 }
 
 function onMouseDown(e) {
@@ -577,13 +606,20 @@ function onMouseDown(e) {
     const pos = getPointerPos(e);
     
     for (let shape of hand) {
-        if (pos.x > shape.x && pos.x < shape.x + (shape.matrix[0].length * BLOCK_SIZE) &&
-            pos.y > shape.y && pos.y < shape.y + (shape.matrix.length * BLOCK_SIZE)) {
+        const sW = shape.matrix[0].length * BASE_BLOCK_SIZE;
+        const sH = shape.matrix.length * BASE_BLOCK_SIZE;
+        
+        // Use a generous hitbox (padding)
+        const padding = 20;
+        if (pos.x > shape.x - padding && pos.x < shape.x + sW + padding &&
+            pos.y > shape.y - padding && pos.y < shape.y + sH + padding) {
             
             draggingShape = shape;
             shape.isDragging = true;
-            dragOffsetX = pos.x - shape.x;
-            dragOffsetY = pos.y - shape.y;
+            // Store offset relative to the shape's Top-Left
+            // We also add an offset so the piece visually jumps UP above the finger
+            dragX = pos.x - shape.x;
+            dragY = pos.y - shape.y;
             break;
         }
     }
@@ -592,19 +628,44 @@ function onMouseDown(e) {
 function onMouseMove(e) {
     if (!draggingShape) return;
     const pos = getPointerPos(e);
-    draggingShape.x = pos.x - dragOffsetX;
-    draggingShape.y = pos.y - dragOffsetY;
+    
+    draggingShape.x = pos.x - dragX;
+    
+    // Apply Visual Offset for touch screens/accessibility
+    // The Logical Y is where the piece *is*, but we want to render it higher?
+    // Actually simpler: We drag the Logical Y, but we shift the render.
+    // Wait, simpler: We want the piece to be 'above' the finger.
+    // So logical Y = finger Y - offset.
+    draggingShape.y = pos.y - dragY - (TOUCH_OFFSET_Y / SCALE);
 }
 
 function onMouseUp(e) {
     if (!draggingShape) return;
     
-    const preciseGridX = Math.round(draggingShape.x / (BLOCK_SIZE + GAP));
-    const preciseGridY = Math.round(draggingShape.y / (BLOCK_SIZE + GAP));
+    // Snap Logic: find center of shape
+    const shapeCenterX = draggingShape.x + (draggingShape.matrix[0].length * BASE_BLOCK_SIZE)/2;
+    const shapeCenterY = draggingShape.y + (draggingShape.matrix.length * BASE_BLOCK_SIZE)/2;
 
-    if (canPlace(draggingShape, preciseGridX, preciseGridY)) {
-        placeShape(draggingShape, preciseGridX, preciseGridY);
+    const gridX = Math.floor( (shapeCenterX - GAP) / (BASE_BLOCK_SIZE + GAP) );
+    const gridY = Math.floor( (shapeCenterY - GAP) / (BASE_BLOCK_SIZE + GAP) );
+
+    // Top-left based alignment for precision
+    const preciseGridX = Math.round(draggingShape.x / (BASE_BLOCK_SIZE + GAP));
+    const preciseGridY = Math.round(draggingShape.y / (BASE_BLOCK_SIZE + GAP));
+    
+    // Try Center snapping first (more intuitive), fallback to Top-Left
+    let targetX = gridX;
+    let targetY = gridY;
+    
+    // Center logic can be tricky for even-width blocks.
+    // Let's use the precise top-left which is robust if visual feedback is good.
+    targetX = preciseGridX;
+    targetY = preciseGridY;
+
+    if (canPlace(draggingShape, targetX, targetY)) {
+        placeShape(draggingShape, targetX, targetY);
     } else {
+        // Return home animation
         draggingShape.x = draggingShape.homeX;
         draggingShape.y = draggingShape.homeY;
     }
@@ -624,110 +685,130 @@ function handleTouch(e) {
 function draw() {
     updateAnimation(); 
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.save();
+    ctx.scale(SCALE, SCALE); // Apply Global Scale
+    
+    ctx.clearRect(0, 0, canvas.width/SCALE, canvas.height/SCALE);
 
     // Grid
     for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
-            let x = c * (BLOCK_SIZE + GAP) + GAP;
-            let y = r * (BLOCK_SIZE + GAP) + GAP;
+            let x = c * (BASE_BLOCK_SIZE + GAP) + GAP;
+            let y = r * (BASE_BLOCK_SIZE + GAP) + GAP;
 
             ctx.fillStyle = '#2a2a30';
-            ctx.fillRect(x, y, BLOCK_SIZE, BLOCK_SIZE);
+            ctx.fillRect(x, y, BASE_BLOCK_SIZE, BASE_BLOCK_SIZE);
 
             if (isLocked(r, c)) {
                 ctx.fillStyle = '#222';
-                ctx.fillRect(x, y, BLOCK_SIZE, BLOCK_SIZE);
+                ctx.fillRect(x, y, BASE_BLOCK_SIZE, BASE_BLOCK_SIZE);
                 ctx.strokeStyle = '#e74c3c';
-                ctx.lineWidth = 2;
+                ctx.lineWidth = 3;
                 ctx.beginPath();
                 ctx.moveTo(x + 5, y + 5);
-                ctx.lineTo(x + BLOCK_SIZE - 5, y + BLOCK_SIZE - 5);
-                ctx.moveTo(x + BLOCK_SIZE - 5, y + 5);
-                ctx.lineTo(x + 5, y + BLOCK_SIZE - 5);
+                ctx.lineTo(x + BASE_BLOCK_SIZE - 5, y + BASE_BLOCK_SIZE - 5);
+                ctx.moveTo(x + BASE_BLOCK_SIZE - 5, y + 5);
+                ctx.lineTo(x + 5, y + BASE_BLOCK_SIZE - 5);
                 ctx.stroke();
             }
 
             if (grid[r][c]) {
                 ctx.fillStyle = grid[r][c];
-                ctx.fillRect(x, y, BLOCK_SIZE, BLOCK_SIZE);
+                ctx.fillRect(x, y, BASE_BLOCK_SIZE, BASE_BLOCK_SIZE);
                 ctx.fillStyle = 'rgba(255,255,255,0.2)';
-                ctx.fillRect(x, y, BLOCK_SIZE, 4);
-                ctx.fillRect(x, y, 4, BLOCK_SIZE);
+                ctx.fillRect(x, y, BASE_BLOCK_SIZE, 4);
+                ctx.fillRect(x, y, 4, BASE_BLOCK_SIZE);
             }
         }
     }
 
-    // Animation
+    // Falling Pieces
     fallingPieces.forEach(p => {
         ctx.fillStyle = p.color;
-        ctx.fillRect(p.x, p.y, BLOCK_SIZE, BLOCK_SIZE);
+        ctx.fillRect(p.x, p.y, BASE_BLOCK_SIZE, BASE_BLOCK_SIZE);
         ctx.fillStyle = 'rgba(255,255,255,0.2)';
-        ctx.fillRect(p.x, p.y, BLOCK_SIZE, 4);
-        ctx.fillRect(p.x, p.y, 4, BLOCK_SIZE);
+        ctx.fillRect(p.x, p.y, BASE_BLOCK_SIZE, 4);
+        ctx.fillRect(p.x, p.y, 4, BASE_BLOCK_SIZE);
     });
 
-    // Pulse FX
+    // Border
     if (pulseMode !== 'NORMAL') {
         ctx.strokeStyle = pulseMode === 'GRAVITY' ? '#f39c12' : 
                           pulseMode === 'LOCKED' ? '#e74c3c' : '#9b59b6';
-        ctx.lineWidth = 4;
-        ctx.strokeRect(0, 0, COLS * (BLOCK_SIZE+GAP) + GAP, ROWS * (BLOCK_SIZE+GAP) + GAP);
+        ctx.lineWidth = 6;
+        ctx.strokeRect(0, 0, COLS * (BASE_BLOCK_SIZE+GAP) + GAP, ROWS * (BASE_BLOCK_SIZE+GAP) + GAP);
     }
 
-    ctx.fillStyle = '#333';
-    ctx.fillRect(0, ROWS * (BLOCK_SIZE+GAP) + GAP, canvas.width, 2);
+    // Divider
+    ctx.fillStyle = '#444';
+    ctx.fillRect(0, ROWS * (BASE_BLOCK_SIZE+GAP) + GAP + 20, canvas.width/SCALE, 4);
 
-    for (let shape of hand) drawShape(shape);
+    // Shapes in Hand
+    for (let shape of hand) {
+        drawShape(shape);
+    }
 
+    // Ghost Preview
     if (draggingShape && gameState === 'IDLE') {
-        const preciseGridX = Math.round(draggingShape.x / (BLOCK_SIZE + GAP));
-        const preciseGridY = Math.round(draggingShape.y / (BLOCK_SIZE + GAP));
+        const preciseGridX = Math.round(draggingShape.x / (BASE_BLOCK_SIZE + GAP));
+        const preciseGridY = Math.round(draggingShape.y / (BASE_BLOCK_SIZE + GAP));
+        
         if (canPlace(draggingShape, preciseGridX, preciseGridY)) {
-            ctx.globalAlpha = 0.3;
-            drawShapeAtGrid(draggingShape, preciseGridX, preciseGridY, '#fff');
+            // Draw Ghost
+            ctx.globalAlpha = 0.5;
+            drawShapeAtGrid(draggingShape, preciseGridX, preciseGridY, null, true); // True for ghost mode
             ctx.globalAlpha = 1.0;
         }
     }
 
+    ctx.restore();
     requestAnimationFrame(loop);
 }
 
 function drawShape(shape) {
     if (shape.isDragging) {
-        ctx.shadowColor = 'rgba(0,0,0,0.5)';
-        ctx.shadowBlur = 10;
-        ctx.shadowOffsetX = 5;
-        ctx.shadowOffsetY = 5;
+        ctx.shadowColor = 'rgba(0,0,0,0.8)';
+        ctx.shadowBlur = 20;
     }
     for (let r = 0; r < shape.matrix.length; r++) {
         for (let c = 0; c < shape.matrix[r].length; c++) {
             if (shape.matrix[r][c] === 1) {
-                let x = shape.x + c * BLOCK_SIZE;
-                let y = shape.y + r * BLOCK_SIZE;
-                let size = BLOCK_SIZE - 2; 
+                let x = shape.x + c * BASE_BLOCK_SIZE;
+                let y = shape.y + r * BASE_BLOCK_SIZE;
+                
+                // If dragging, draw larger
+                let size = BASE_BLOCK_SIZE - 2; 
+
                 ctx.fillStyle = shape.color;
                 ctx.fillRect(x, y, size, size);
-                ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-                ctx.lineWidth = 1;
+                ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+                ctx.lineWidth = 2;
                 ctx.strokeRect(x,y,size,size);
             }
         }
     }
     ctx.shadowColor = 'transparent';
     ctx.shadowBlur = 0;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 0;
 }
 
-function drawShapeAtGrid(shape, gridX, gridY, overrideColor) {
+function drawShapeAtGrid(shape, gridX, gridY, overrideColor, isGhost) {
     for (let r = 0; r < shape.matrix.length; r++) {
         for (let c = 0; c < shape.matrix[r].length; c++) {
             if (shape.matrix[r][c] === 1) {
-                let x = (gridX + c) * (BLOCK_SIZE + GAP) + GAP;
-                let y = (gridY + r) * (BLOCK_SIZE + GAP) + GAP;
-                ctx.fillStyle = overrideColor || shape.color;
-                ctx.fillRect(x, y, BLOCK_SIZE, BLOCK_SIZE);
+                let x = (gridX + c) * (BASE_BLOCK_SIZE + GAP) + GAP;
+                let y = (gridY + r) * (BASE_BLOCK_SIZE + GAP) + GAP;
+                
+                if (isGhost) {
+                    // White outline ghost
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+                    ctx.fillRect(x, y, BASE_BLOCK_SIZE, BASE_BLOCK_SIZE);
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(x, y, BASE_BLOCK_SIZE, BASE_BLOCK_SIZE);
+                } else {
+                    ctx.fillStyle = overrideColor || shape.color;
+                    ctx.fillRect(x, y, BASE_BLOCK_SIZE, BASE_BLOCK_SIZE);
+                }
             }
         }
     }
@@ -736,9 +817,6 @@ function drawShapeAtGrid(shape, gridX, gridY, overrideColor) {
 function loop() {
     draw();
 }
-
-// Note: Intentionally not calling init() here. 
-// Init is called by the start screen event listener.
 
 </script>
 </body>
