@@ -3,9 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="theme-color" content="#121212">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
     <title>Pulse Grid</title>
     <style>
         :root {
@@ -16,12 +13,12 @@
             --font-main: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
+        /* EXACT CSS METHOD FROM REFERENCE CODE */
         * {
             box-sizing: border-box;
-            touch-action: none; /* Critical: Prevents Android "pull to refresh" or scroll */
+            touch-action: none;
             user-select: none;
             -webkit-user-select: none;
-            -webkit-tap-highlight-color: transparent;
             font-family: var(--font-main);
         }
 
@@ -29,17 +26,13 @@
             margin: 0;
             padding: 0;
             background-color: var(--bg-color);
-            color: var(--text-color);
-            overflow: hidden; /* Hides scrollbars */
+            overflow: hidden;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: flex-start;
-            /* Height is set dynamically by JS to handle the Android address bar */
-            height: 100vh; 
-            width: 100%;
-            position: fixed; /* Locks the body in place */
-            top: 0; left: 0;
+            justify-content: center;
+            height: 100vh; /* Will be overridden by JS */
+            color: white;
         }
 
         #game-container {
@@ -50,96 +43,90 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: flex-start;
-            padding-top: 10px;
         }
 
-        /* --- UI Header --- */
-        #header-area {
+        .header-container {
             width: 96%;
+            margin-top: 10px;
+            margin-bottom: 5px;
             display: flex;
             justify-content: space-between;
-            margin-bottom: 5px;
-            flex-shrink: 0;
             z-index: 10;
         }
 
         .stat-box {
-            background: rgba(255, 255, 255, 0.08);
-            padding: 8px 15px;
-            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 5px 15px;
+            border-radius: 10px;
             text-align: center;
-            min-width: 90px;
-            backdrop-filter: blur(4px);
+            min-width: 80px;
         }
-        
-        .label { font-size: 0.75rem; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
-        .value { font-size: 1.4rem; font-weight: 800; color: #fff; }
+        .label { font-size: 0.7rem; color: #aaa; text-transform: uppercase; }
+        .value { font-size: 1.2rem; font-weight: bold; }
 
-        #pulse-bar {
+        #pulse-indicator {
             width: 96%;
             padding: 8px 0;
+            margin-bottom: 5px;
             background: #222;
-            border-radius: 20px;
+            border-radius: 15px;
             text-align: center;
             font-size: 0.9rem;
             font-weight: bold;
             border: 1px solid #444;
             text-transform: uppercase;
-            margin-bottom: 5px;
-            flex-shrink: 0;
         }
 
-        /* --- Canvas Wrapper --- */
-        #canvas-wrapper {
-            flex-grow: 1; /* Fills remaining height exactly */
-            width: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center; /* Vertically centers the grid */
+        /* Canvas Wrapper: Grows to fill space */
+        .canvas-wrapper {
             position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             overflow: hidden;
             padding-bottom: 10px;
         }
 
         canvas {
             border-radius: 8px;
-            background-color: var(--grid-bg);
-            box-shadow: 0 5px 25px rgba(0,0,0,0.6);
+            /* Canvas size is handled by JS logic */
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
         }
 
-        /* --- Overlays --- */
-        .overlay {
+        /* MODALS */
+        .modal-overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(18, 18, 18, 0.96);
+            background: rgba(18, 18, 18, 0.98);
             display: flex;
             flex-direction: column;
-            justify-content: center;
             align-items: center;
+            justify-content: center;
             z-index: 100;
             transition: opacity 0.3s;
         }
         .hidden { opacity: 0; pointer-events: none; }
 
-        h1 { font-size: 3rem; margin: 0 0 10px 0; color: var(--highlight); text-shadow: 0 0 20px var(--highlight); }
-        p { font-size: 1.1rem; color: #ccc; margin: 10px 20px; text-align: center; max-width: 400px; }
+        h1 { font-size: 3rem; margin: 0; color: var(--highlight); text-shadow: 0 0 20px var(--highlight); }
+        p { color: #ccc; margin: 15px 0; max-width: 300px; text-align: center; }
 
         button {
-            padding: 18px 40px;
-            font-size: 1.3rem;
             background: var(--highlight);
-            border: none;
-            border-radius: 30px;
             color: #000;
-            font-weight: 800;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 30px;
+            margin-top: 20px;
+            box-shadow: 0 0 15px rgba(0,255,242,0.4);
             cursor: pointer;
-            margin-top: 30px;
-            box-shadow: 0 0 20px rgba(0, 255, 242, 0.4);
         }
         button:active { transform: scale(0.95); }
 
-        /* Pulse Modes */
+        /* Status Colors */
         .pulse-normal { border-color: #555; color: #fff; }
         .pulse-gravity { border-color: #f39c12; color: #f39c12; background: rgba(243, 156, 18, 0.1); }
         .pulse-locked { border-color: #e74c3c; color: #e74c3c; background: rgba(231, 76, 60, 0.1); }
@@ -150,9 +137,8 @@
 <body>
 
 <div id="game-container">
-    
-    <!-- UI Header -->
-    <div id="header-area">
+    <!-- Header -->
+    <div class="header-container">
         <div class="stat-box">
             <div class="label">Score</div>
             <div class="value" id="score-val">0</div>
@@ -163,161 +149,146 @@
         </div>
     </div>
 
-    <!-- Pulse Status -->
-    <div id="pulse-bar" class="pulse-normal">STATUS: NORMAL</div>
+    <div id="pulse-indicator" class="pulse-normal">STATUS: NORMAL</div>
 
-    <!-- Canvas -->
-    <div id="canvas-wrapper">
+    <!-- Canvas Container -->
+    <div class="canvas-wrapper">
         <canvas id="gameCanvas"></canvas>
     </div>
 
     <!-- Start Screen -->
-    <div id="start-screen" class="overlay">
+    <div id="start-screen" class="modal-overlay">
         <h1>PULSE GRID</h1>
-        <p>Drag blocks to fill the grid.<br>Blocks float above your finger.</p>
-        <button id="start-btn">TAP TO START</button>
+        <p>Drag blocks to fill rows.<br>Blocks float above your finger.</p>
+        <button onclick="startGame()">TAP TO PLAY</button>
     </div>
 
-    <!-- Game Over Screen -->
-    <div id="game-over" class="overlay hidden">
-        <h1 style="color: #e74c3c; text-shadow: 0 0 20px #e74c3c;">GRID LOCKED</h1>
+    <!-- Game Over -->
+    <div id="game-over" class="modal-overlay hidden">
+        <h1 style="color: #e74c3c;">GRID LOCKED</h1>
         <p>Final Score: <span id="final-score">0</span></p>
-        <button onclick="Game.reset()">PLAY AGAIN</button>
+        <button onclick="GameApp.reset()">PLAY AGAIN</button>
     </div>
-
 </div>
 
 <script>
 /**
- * PULSE GRID - ANDROID FULLSCREEN FIX
- * Uses force-height logic and touch-action: none
+ * PULSE GRID - RESTORED & OPTIMIZED
+ * Uses the exact "Block Blast" Reference Layout Method
  */
 
-const Game = {
-    canvas: document.getElementById('gameCanvas'),
-    ctx: null,
-    
-    COLS: 10,
-    ROWS: 10,
-    GAP: 2,
-    
-    width: 0,
-    height: 0,
-    pixelRatio: 1,
-    blockSize: 0,
-    boardX: 0,
-    boardY: 0,
-    
-    grid: [],
-    hand: [],
-    score: 0,
-    highScore: localStorage.getItem('pulseHigh') || 0,
-    moves: 0,
-    gameState: 'START',
-    
-    pulseMode: 'NORMAL',
-    pulseTimer: 0,
-    lockedCells: [],
-    fallingPieces: [],
+// Fullscreen Helper from Reference Code
+function toggleFullScreen() {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+            console.log("Fullscreen ignored (likely iOS)", err);
+        });
+    }
+}
 
-    draggingShape: null,
-    dragOffsetX: 0,
-    dragOffsetY: 0,
-    touchOffsetY: 120, // Float Offset
+function startGame() {
+    toggleFullScreen();
+    document.getElementById('start-screen').classList.add('hidden');
+    GameApp.init();
+}
 
-    colors: ['#3498db', '#2ecc71', '#9b59b6', '#f1c40f', '#e67e22', '#e74c3c', '#1abc9c'],
-    shapesDB: [
-        [[1]], [[1,1]], [[1],[1]], [[1,1,1]], [[1],[1],[1]],
-        [[1,1],[1,1]], [[1,0],[1,1]], [[0,1],[1,1]],
-        [[1,1,1],[0,1,0]], [[1,1,1],[1,0,0]], [[1,1,1],[0,0,1]]
-    ],
+class PulseGrid {
+    constructor() {
+        this.canvas = document.getElementById('gameCanvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.wrapper = document.querySelector('.canvas-wrapper');
+
+        // Config
+        this.COLS = 10;
+        this.ROWS = 10;
+        this.GAP = 2;
+        
+        // State
+        this.grid = [];
+        this.hand = [];
+        this.score = 0;
+        this.highScore = localStorage.getItem('pulseHigh') || 0;
+        this.moves = 0;
+        this.gameState = 'IDLE'; 
+
+        // Mechanics
+        this.pulseMode = 'NORMAL';
+        this.pulseTimer = 0;
+        this.lockedCells = [];
+        this.fallingPieces = [];
+
+        // Input
+        this.draggingShape = null;
+        this.dragOffsetX = 0;
+        this.dragOffsetY = 0;
+        this.touchOffsetY = 100; // Float offset
+
+        this.colors = ['#3498db', '#2ecc71', '#9b59b6', '#f1c40f', '#e67e22', '#e74c3c', '#1abc9c'];
+        this.shapesDB = [
+            [[1]], [[1,1]], [[1],[1]], [[1,1,1]], [[1],[1],[1]],
+            [[1,1],[1,1]], [[1,0],[1,1]], [[0,1],[1,1]],
+            [[1,1,1],[0,1,0]], [[1,1,1],[1,0,0]], [[1,1,1],[0,0,1]]
+        ];
+
+        // Bind Resize
+        window.addEventListener('resize', () => this.resize());
+        
+        // Bind Input
+        this.bindInput();
+        
+        // Initial setup
+        document.getElementById('highscore-val').innerText = this.highScore;
+        this.reset();
+        
+        // Start Loop
+        this.loop();
+    }
 
     init() {
-        this.ctx = this.canvas.getContext('2d');
-        document.getElementById('highscore-val').innerText = this.highScore;
-        
-        const start = (e) => this.handleStart(e);
-        const move = (e) => this.handleMove(e);
-        const end = (e) => this.handleEnd(e);
-
-        this.canvas.addEventListener('mousedown', start);
-        window.addEventListener('mousemove', move);
-        window.addEventListener('mouseup', end);
-        
-        this.canvas.addEventListener('touchstart', start, {passive: false});
-        window.addEventListener('touchmove', move, {passive: false});
-        window.addEventListener('touchend', end, {passive: false});
-
-        // ANDROID FULLSCREEN TRIGGER
-        const btn = document.getElementById('start-btn');
-        const trigger = (e) => {
-            // 1. Prevent Default
-            e.preventDefault();
-            
-            // 2. Request Fullscreen (API)
-            const el = document.documentElement;
-            if (el.requestFullscreen) el.requestFullscreen().catch(()=>{});
-            else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-            
-            // 3. Try Lock Orientation
-            if (screen.orientation && screen.orientation.lock) {
-                screen.orientation.lock('portrait').catch(()=>{});
-            }
-
-            // 4. Force Resize after delay (to allow UI to hide)
-            setTimeout(() => {
-                this.resize();
-                document.getElementById('start-screen').classList.add('hidden');
-                this.reset();
-            }, 300);
-        };
-        btn.addEventListener('click', trigger);
-        btn.addEventListener('touchstart', trigger);
-
-        window.addEventListener('resize', () => this.resize());
         this.resize();
-        requestAnimationFrame(() => this.loop());
-    },
+        this.reset();
+    }
 
     resize() {
-        // --- THE MAGIC FIX FROM REFERENCE ---
-        // Force body height to match innerHeight, ignoring address bar
-        document.body.style.height = window.innerHeight + "px";
-        
-        const wrapper = document.getElementById('canvas-wrapper');
-        const rect = wrapper.getBoundingClientRect();
-        
-        this.pixelRatio = window.devicePixelRatio || 1;
-        
-        // Use 98% of available wrapper space
-        const w = rect.width * 0.98;
-        const h = rect.height * 0.98;
+        // Calculate based on wrapper size (The "Block Blast" Method)
+        const rect = this.wrapper.getBoundingClientRect();
+        const pixelRatio = window.devicePixelRatio || 1;
 
-        this.canvas.style.width = w + "px";
-        this.canvas.style.height = h + "px";
-        this.canvas.width = w * this.pixelRatio;
-        this.canvas.height = h * this.pixelRatio;
-        this.ctx.scale(this.pixelRatio, this.pixelRatio);
+        // Use slightly less than 100% to ensure no scrollbars
+        const availableW = rect.width * 0.98;
+        const availableH = rect.height * 0.98;
 
-        this.width = w;
-        this.height = h;
+        // Set logical CSS size
+        this.canvas.style.width = availableW + "px";
+        this.canvas.style.height = availableH + "px";
 
-        // Calc Block Size: Fit Grid(10) + Hand(4 rows approx)
+        // Set internal bitmap size
+        this.canvas.width = availableW * pixelRatio;
+        this.canvas.height = availableH * pixelRatio;
+        this.ctx.scale(pixelRatio, pixelRatio);
+
+        // Store logical dimensions for calculation
+        this.width = availableW;
+        this.height = availableH;
+
+        // Calculate Block Size
+        // Needs to fit Grid (10) + Hand area (approx 4.5 blocks high)
         const sizeW = (this.width - (this.GAP * (this.COLS + 1))) / this.COLS;
-        const sizeH = (this.height - (this.GAP * (this.ROWS + 1))) / (this.ROWS + 4.5); 
+        const sizeH = (this.height - (this.GAP * (this.ROWS + 1))) / (this.ROWS + 5); 
         this.blockSize = Math.floor(Math.min(sizeW, sizeH));
 
         // Center Grid
         const gridPixelW = (this.blockSize * this.COLS) + (this.GAP * (this.COLS - 1));
         this.boardX = (this.width - gridPixelW) / 2;
-        this.boardY = 5; 
+        this.boardY = 10; 
 
         // Hand Position (Bottom)
         this.handY = this.boardY + (this.blockSize * this.ROWS) + (this.GAP * this.ROWS) + 20;
-        this.touchOffsetY = this.blockSize * 2.5; // Offset for fat fingers
+        this.touchOffsetY = this.blockSize * 2.5;
 
+        // If resizing mid-game, update hand positions
         if(this.hand.length > 0) this.repositionHand();
-    },
+    }
 
     reset() {
         this.grid = Array(this.ROWS).fill().map(() => Array(this.COLS).fill(null));
@@ -331,32 +302,37 @@ const Game = {
         this.updateUI();
         document.getElementById('game-over').classList.add('hidden');
         this.spawnHand();
-    },
+    }
 
     spawnHand() {
         this.hand = [];
         for(let i=0; i<3; i++) {
             const t = this.shapesDB[Math.floor(Math.random()*this.shapesDB.length)];
             const c = this.colors[Math.floor(Math.random()*this.colors.length)];
-            this.hand.push({ matrix: t, color: c, x: 0, y: 0, homeX: 0, homeY: 0, isDragging: false });
+            this.hand.push({ 
+                matrix: t, color: c, 
+                x: 0, y: 0, homeX: 0, homeY: 0, isDragging: false 
+            });
         }
         this.repositionHand();
         this.checkGameOver();
-    },
+    }
 
     repositionHand() {
         const slotW = this.width / 3;
         this.hand.forEach((s, i) => {
             if(!s.isDragging) {
                 const sw = s.matrix[0].length * this.blockSize;
+                // Center in slot
                 s.homeX = (i * slotW) + (slotW/2) - (sw/2);
                 s.homeY = this.handY + this.blockSize; 
                 s.x = s.homeX;
                 s.y = s.homeY;
             }
         });
-    },
+    }
 
+    // --- LOGIC ---
     triggerPulse() {
         const m = ['GRAVITY', 'LOCKED', 'ECHO'];
         if(Math.random()<0.3) { this.pulseMode='NORMAL'; this.pulseTimer=0; }
@@ -366,7 +342,7 @@ const Game = {
         }
         if(this.pulseMode==='LOCKED') this.spawnLocks(); else this.lockedCells=[];
         this.updateUI();
-    },
+    }
 
     processTurn() {
         this.moves++;
@@ -375,7 +351,7 @@ const Game = {
             if(this.pulseTimer<=0) { this.pulseMode='NORMAL'; this.lockedCells=[]; }
         } else if(this.moves%5===0) this.triggerPulse();
         this.updateUI();
-    },
+    }
 
     spawnLocks() {
         let n=0, k=0;
@@ -384,7 +360,7 @@ const Game = {
             if(!this.grid[r][c] && !this.isLocked(r,c)) { this.lockedCells.push({r,c}); n++; }
             k++;
         }
-    },
+    }
 
     isLocked(r, c) { return this.lockedCells.some(l => l.r===r && l.c===c); },
 
@@ -402,13 +378,17 @@ const Game = {
         }
         rc.forEach(r => { for(let c=0; c<this.COLS; c++) this.grid[r][c]=null; });
         cc.forEach(c => { for(let r=0; r<this.ROWS; r++) this.grid[r][c]=null; });
+        
         let tot = (rc.length*this.COLS) + (cc.length*this.ROWS);
         if(tot>0) {
             let pts = tot*10; if(rc.length>1||cc.length>1) pts*=2;
-            this.addScore(pts);
+            this.score += pts;
+            this.updateUI();
         }
-        if(this.pulseMode==='GRAVITY') this.startGravity(); else this.checkGameOver();
-    },
+
+        if(this.pulseMode==='GRAVITY') this.startGravity();
+        else this.checkGameOver();
+    }
 
     startGravity() {
         this.fallingPieces = [];
@@ -434,11 +414,11 @@ const Game = {
             }
         }
         if(m) this.gameState='ANIMATING'; else this.checkGameOver();
-    },
+    }
 
     updateAnim() {
         if(this.gameState!=='ANIMATING') return;
-        let act=false; const spd=this.blockSize; 
+        let act=false; const spd=this.blockSize*0.8; 
         this.fallingPieces.forEach(p => {
             if(p.y < p.ty) { p.y+=spd; act=true; if(p.y>=p.ty) p.y=p.ty; }
         });
@@ -446,7 +426,7 @@ const Game = {
             this.fallingPieces.forEach(p => this.grid[p.tr][p.c]=p.color);
             this.fallingPieces=[]; this.gameState='IDLE'; this.checkGameOver();
         }
-    },
+    }
 
     canPlace(s, gr, gc) {
         for(let r=0; r<s.matrix.length; r++) {
@@ -459,7 +439,7 @@ const Game = {
             }
         }
         return true;
-    },
+    }
 
     placeShape(s, gr, gc) {
         for(let r=0; r<s.matrix.length; r++) {
@@ -467,12 +447,13 @@ const Game = {
                 if(s.matrix[r][c]) this.grid[gr+r][gc+c]=s.color;
             }
         }
-        this.addScore(s.matrix.flat().filter(x=>x).length);
+        this.score += s.matrix.flat().filter(x=>x).length;
+        this.updateUI();
         this.hand = this.hand.filter(h => h!==s);
         this.processTurn();
         this.checkLines();
         if(this.hand.length===0) this.spawnHand();
-    },
+    }
 
     checkGameOver() {
         if(this.gameState==='ANIMATING'||this.hand.length===0) return;
@@ -493,97 +474,123 @@ const Game = {
             }
             document.getElementById('game-over').classList.remove('hidden');
         }
-    },
-
-    addScore(p) { this.score+=p; this.updateUI(); },
+    }
     
     updateUI() {
         document.getElementById('score-val').innerText=this.score;
         document.getElementById('highscore-val').innerText=this.highScore;
-        const b = document.getElementById('pulse-bar');
+        const b = document.getElementById('pulse-indicator');
         b.className = '';
         if(this.pulseMode==='NORMAL') { b.classList.add('pulse-normal'); b.innerText="STATUS: NORMAL"; }
         else {
             b.classList.add(`pulse-${this.pulseMode.toLowerCase()}`);
             b.innerText = `${this.pulseMode} (${this.pulseTimer})`;
         }
-    },
+    }
 
+    // --- INPUT ---
     getPointer(e) {
+        // Correctly maps touch coordinates relative to canvas
         const r = this.canvas.getBoundingClientRect();
         const cx = e.touches ? e.touches[0].clientX : e.clientX;
         const cy = e.touches ? e.touches[0].clientY : e.clientY;
         return { x: cx - r.left, y: cy - r.top };
-    },
+    }
 
-    handleStart(e) {
-        if(this.gameState!=='IDLE') return;
-        const p = this.getPointer(e);
-        const pad = 30;
-        for(let s of this.hand) {
-            const w = s.matrix[0].length * this.blockSize;
-            const h = s.matrix.length * this.blockSize;
-            if(p.x >= s.x-pad && p.x <= s.x+w+pad && p.y >= s.y-pad && p.y <= s.y+h+pad) {
-                this.draggingShape = s;
-                s.isDragging = true;
-                this.dragOffsetX = p.x - s.x;
-                this.dragOffsetY = p.y - s.y;
-                break;
+    bindInput() {
+        const start = (e) => {
+            if(this.gameState!=='IDLE') return;
+            const p = this.getPointer(e);
+            const pad = 30;
+            for(let s of this.hand) {
+                const w = s.matrix[0].length * this.blockSize;
+                const h = s.matrix.length * this.blockSize;
+                if(p.x >= s.x-pad && p.x <= s.x+w+pad && p.y >= s.y-pad && p.y <= s.y+h+pad) {
+                    this.draggingShape = s;
+                    s.isDragging = true;
+                    this.dragOffsetX = p.x - s.x;
+                    this.dragOffsetY = p.y - s.y;
+                    break;
+                }
             }
-        }
-    },
+        };
 
-    handleMove(e) {
-        if(!this.draggingShape) return;
-        e.preventDefault();
-        const p = this.getPointer(e);
-        this.draggingShape.x = p.x - this.dragOffsetX;
-        this.draggingShape.y = p.y - this.dragOffsetY - this.touchOffsetY;
-    },
+        const move = (e) => {
+            if(!this.draggingShape) return;
+            e.preventDefault();
+            const p = this.getPointer(e);
+            this.draggingShape.x = p.x - this.dragOffsetX;
+            // Float above finger
+            this.draggingShape.y = p.y - this.dragOffsetY - this.touchOffsetY;
+        };
 
-    handleEnd(e) {
-        if(!this.draggingShape) return;
-        const s = this.draggingShape;
-        const cx = s.x + (s.matrix[0].length * this.blockSize)/2;
-        const cy = s.y + (s.matrix.length * this.blockSize)/2;
-        const gr = Math.round((cy - this.boardY - this.blockSize/2) / (this.blockSize + this.GAP));
-        const gc = Math.round((cx - this.boardX - this.blockSize/2) / (this.blockSize + this.GAP));
+        const end = (e) => {
+            if(!this.draggingShape) return;
+            const s = this.draggingShape;
+            const cx = s.x + (s.matrix[0].length * this.blockSize)/2;
+            const cy = s.y + (s.matrix.length * this.blockSize)/2;
+            
+            // Calculate grid position based on center
+            const gr = Math.round((cy - this.boardY - this.blockSize/2) / (this.blockSize + this.GAP));
+            const gc = Math.round((cx - this.boardX - this.blockSize/2) / (this.blockSize + this.GAP));
 
-        if(this.canPlace(s, gr, gc)) this.placeShape(s, gr, gc);
-        else { s.x = s.homeX; s.y = s.homeY; }
+            if(this.canPlace(s, gr, gc)) this.placeShape(s, gr, gc);
+            else { s.x = s.homeX; s.y = s.homeY; }
+            
+            s.isDragging = false;
+            this.draggingShape = null;
+        };
+
+        this.canvas.addEventListener('mousedown', start);
+        window.addEventListener('mousemove', move);
+        window.addEventListener('mouseup', end);
         
-        s.isDragging = false;
-        this.draggingShape = null;
-    },
+        this.canvas.addEventListener('touchstart', start, {passive: false});
+        window.addEventListener('touchmove', move, {passive: false});
+        window.addEventListener('touchend', end, {passive: false});
+    }
 
+    // --- RENDER ---
     loop() {
         this.updateAnim();
         this.draw();
         requestAnimationFrame(() => this.loop());
-    },
+    }
 
     draw() {
         this.ctx.clearRect(0,0,this.width,this.height);
+
+        // Draw Board
         for(let r=0; r<this.ROWS; r++) {
             for(let c=0; c<this.COLS; c++) {
                 const x = this.boardX + c*(this.blockSize+this.GAP);
                 const y = this.boardY + r*(this.blockSize+this.GAP);
+                
                 this.ctx.fillStyle = '#2a2a30';
                 this.roundRect(x,y,this.blockSize,this.blockSize,4);
                 this.ctx.fill();
+
                 if(this.isLocked(r,c)) {
                     this.ctx.fillStyle='#111'; this.ctx.fill();
                     this.ctx.strokeStyle='#c0392b'; this.ctx.lineWidth=2;
                     this.ctx.strokeRect(x+4,y+4,this.blockSize-8,this.blockSize-8);
                 }
+
                 if(this.grid[r][c]) this.drawBlock(x,y,this.grid[r][c]);
             }
         }
+
+        // Falling Pieces
         this.fallingPieces.forEach(p => this.drawBlock(p.x, p.y, p.color));
+
+        // Separator
         this.ctx.fillStyle = '#333';
         this.ctx.fillRect(0, this.handY-10, this.width, 2);
+
+        // Hand
         this.hand.forEach(s => {
             if(s.isDragging) {
+                // Ghost
                 const cx = s.x + (s.matrix[0].length * this.blockSize)/2;
                 const cy = s.y + (s.matrix.length * this.blockSize)/2;
                 const gr = Math.round((cy - this.boardY - this.blockSize/2) / (this.blockSize + this.GAP));
@@ -596,12 +603,14 @@ const Game = {
             }
             this.drawShape(s);
         });
+
+        // Pulse Border
         if(this.pulseMode!=='NORMAL') {
             this.ctx.strokeStyle = this.pulseMode==='GRAVITY'?'#f39c12':this.pulseMode==='LOCKED'?'#e74c3c':'#9b59b6';
             this.ctx.lineWidth = 4;
-            this.ctx.strokeRect(this.boardX-3, this.boardY-3, (this.blockSize+this.GAP)*this.COLS+2, (this.blockSize+this.GAP)*this.ROWS+2);
+            this.ctx.strokeRect(this.boardX-3, this.boardY-3, (this.blockSize+this.GAP)*this.COLS+6, (this.blockSize+this.GAP)*this.ROWS+6);
         }
-    },
+    }
 
     drawBlock(x, y, c) {
         this.ctx.fillStyle = c;
@@ -609,12 +618,13 @@ const Game = {
         this.ctx.fill();
         this.ctx.fillStyle = 'rgba(255,255,255,0.2)';
         this.ctx.fillRect(x+2,y+2,this.blockSize-4,this.blockSize*0.3);
-    },
+    }
 
     drawShape(s) {
-        const size = s.isDragging ? this.blockSize : this.blockSize*0.85;
+        const size = s.isDragging ? this.blockSize : this.blockSize*0.9;
         const g = s.isDragging ? this.GAP : 2;
         if(s.isDragging) { this.ctx.shadowColor='rgba(0,0,0,0.5)'; this.ctx.shadowBlur=15; this.ctx.shadowOffsetY=15; }
+        
         for(let r=0; r<s.matrix.length; r++) {
             for(let c=0; c<s.matrix[r].length; c++) {
                 if(s.matrix[r][c]) {
@@ -625,7 +635,7 @@ const Game = {
             }
         }
         this.ctx.shadowColor='transparent'; this.ctx.shadowBlur=0; this.ctx.shadowOffsetY=0;
-    },
+    }
 
     drawShapeAt(s, x, y, c) {
         for(let r=0; r<s.matrix.length; r++) {
@@ -637,7 +647,7 @@ const Game = {
                 }
             }
         }
-    },
+    }
 
     roundRect(x, y, w, h, r) {
         this.ctx.beginPath();
@@ -647,14 +657,16 @@ const Game = {
         this.ctx.lineTo(x, y+r); this.ctx.quadraticCurveTo(x, y, x+r, y);
         this.ctx.closePath();
     }
-};
+}
 
+let GameApp;
 window.onload = () => {
-    // FORCE HEIGHT LOGIC (Critical for Android Address Bar)
+    // FORCE HEIGHT LOGIC FROM REFERENCE
     const setH = () => document.body.style.height = window.innerHeight + "px";
     window.addEventListener("resize", setH);
     setH();
-    Game.init();
+    
+    GameApp = new PulseGrid();
 };
 </script>
 </body>
