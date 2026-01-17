@@ -2,671 +2,505 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Pulse Grid</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HELL'S KITCHEN: Slicer Edition</title>
     <style>
         :root {
-            --bg-color: #121212;
-            --grid-bg: #1e1e24;
-            --highlight: #00fff2;
-            --text-color: #ffffff;
-            --font-main: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        /* --- 1. FULLSCREEN LOCK (The "Block Blast" Method) --- */
-        * {
-            box-sizing: border-box;
-            touch-action: none;
-            user-select: none;
-            -webkit-user-select: none;
-            -webkit-tap-highlight-color: transparent;
-            font-family: var(--font-main);
+            --hk-red: #c41e3a;
+            --hk-dark: #111;
+            --hk-gold: #d4af37;
         }
 
         body {
+            background-color: var(--hk-dark);
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
-            padding: 0;
-            background-color: var(--bg-color);
-            overflow: hidden;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh; /* Set by JS */
-            color: white;
-            position: fixed; /* Locks scroll on mobile */
-            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
         }
 
+        /* --- UI Elements --- */
         #game-container {
-            position: relative;
+            text-align: center;
             width: 100%;
             max-width: 600px;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            position: relative;
         }
 
-        /* --- 2. HEADER --- */
-        .header-container {
-            width: 96%;
-            margin-top: 10px;
-            margin-bottom: 5px;
+        h1 {
+            font-size: 3rem;
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            color: white;
+            text-shadow: 4px 4px 0px var(--hk-red);
+            font-style: italic;
+            margin-bottom: 10px;
+        }
+
+        .hud {
             display: flex;
             justify-content: space-between;
-            z-index: 10;
-            flex-shrink: 0;
-        }
-
-        .stat-box {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 5px 15px;
-            border-radius: 10px;
-            text-align: center;
-            min-width: 80px;
-        }
-        .label { font-size: 0.7rem; color: #aaa; text-transform: uppercase; }
-        .value { font-size: 1.2rem; font-weight: bold; }
-
-        #pulse-indicator {
-            width: 96%;
-            padding: 8px 0;
-            margin-bottom: 5px;
-            background: #222;
-            border-radius: 15px;
-            text-align: center;
-            font-size: 0.9rem;
+            font-size: 1.5rem;
+            padding: 0 20px;
             font-weight: bold;
-            border: 1px solid #444;
-            text-transform: uppercase;
-            flex-shrink: 0;
+            color: var(--hk-gold);
+            text-shadow: 1px 1px 2px black;
         }
 
-        /* --- 3. WRAPPER (Calculates Size) --- */
-        .canvas-wrapper {
+        /* --- The Cutting Board --- */
+        #cutting-board {
+            background: #5c4033;
+            background-image: repeating-linear-gradient(90deg, #5c4033 0, #5c4033 20px, #523a2e 20px, #523a2e 22px);
+            border: 8px solid #3e2b22;
+            border-radius: 15px;
+            height: 350px;
+            margin: 15px 20px;
             position: relative;
-            width: 100%;
-            flex-grow: 1; /* Fills remaining height */
+            cursor: crosshair; /* Changes cursor to crosshair */
+            box-shadow: 0 15px 30px rgba(0,0,0,0.7) inset, 0 10px 20px rgba(0,0,0,0.5);
+            overflow: hidden; /* Keeps slices inside */
             display: flex;
             align-items: center;
             justify-content: center;
-            overflow: hidden;
-            padding-bottom: 10px;
         }
 
-        canvas {
-            border-radius: 8px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-            background-color: var(--grid-bg);
+        /* The Main Food Item (Uncut) */
+        #food-item {
+            font-size: 9rem;
+            z-index: 5;
+            transition: transform 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            filter: drop-shadow(0 10px 10px rgba(0,0,0,0.5));
         }
 
-        /* --- 4. OVERLAYS --- */
-        .modal-overlay {
+        /* The Sliced Pieces */
+        .food-slice {
             position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(18, 18, 18, 0.98);
+            font-size: 5rem;
+            pointer-events: none; /* Let clicks pass through to board */
+            z-index: 2;
+            opacity: 1;
+            /* Flatten it to look like a slice */
+            transform-origin: center;
+            filter: brightness(0.9);
+        }
+
+        /* The "Slash" visual effect */
+        .slash-effect {
+            position: absolute;
+            height: 4px;
+            background: white;
+            width: 150px;
+            box-shadow: 0 0 10px white, 0 0 20px var(--hk-red);
+            pointer-events: none;
+            z-index: 10;
+            border-radius: 50%;
+            animation: slashAnim 0.15s linear forwards;
+        }
+
+        @keyframes slashAnim {
+            0% { transform: translate(-50%, -50%) scaleX(0) rotate(var(--angle)); opacity: 1; }
+            50% { transform: translate(-50%, -50%) scaleX(1) rotate(var(--angle)); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scaleX(1) rotate(var(--angle)); opacity: 0; }
+        }
+
+        /* --- Progress Bars --- */
+        .bar-container {
+            width: 90%;
+            margin: 0 auto;
+            background: #222;
+            height: 25px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 2px solid #555;
+            position: relative;
+        }
+
+        #timer-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #ff8800, #c41e3a);
+            width: 100%;
+            transition: width 0.1s linear;
+        }
+
+        #chop-progress {
+            margin-top: 5px;
+            font-size: 1.2rem;
+            color: #aaa;
+            letter-spacing: 2px;
+            height: 30px;
+        }
+
+        /* --- Feedback Overlays --- */
+        #feedback-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 5rem;
+            font-weight: 900;
+            color: white;
+            -webkit-text-stroke: 2px var(--hk-red);
+            text-transform: uppercase;
+            text-shadow: 4px 4px 0px black;
+            opacity: 0;
+            pointer-events: none;
+            white-space: nowrap;
+            z-index: 20;
+        }
+
+        /* --- Screens --- */
+        #start-screen, #game-over-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            z-index: 100;
-            transition: opacity 0.3s;
+            z-index: 50;
+            backdrop-filter: blur(5px);
         }
-        .hidden { opacity: 0; pointer-events: none; }
-
-        h1 { font-size: 3rem; margin: 0; color: var(--highlight); text-shadow: 0 0 20px var(--highlight); }
-        p { color: #ccc; margin: 15px 0; max-width: 300px; text-align: center; line-height: 1.5; }
 
         button {
-            background: var(--highlight);
-            color: #000;
-            border: none;
+            background: transparent;
+            color: white;
+            border: 3px solid var(--hk-gold);
             padding: 15px 40px;
-            font-size: 1.2rem;
+            font-size: 1.5rem;
+            text-transform: uppercase;
             font-weight: bold;
-            border-radius: 30px;
-            margin-top: 20px;
-            box-shadow: 0 0 15px rgba(0,255,242,0.4);
             cursor: pointer;
+            margin-top: 30px;
+            transition: all 0.2s;
+            box-shadow: 0 0 10px var(--hk-gold);
         }
-        button:active { transform: scale(0.95); }
 
-        /* Status Colors */
-        .pulse-normal { border-color: #555; color: #fff; }
-        .pulse-gravity { border-color: #f39c12; color: #f39c12; background: rgba(243, 156, 18, 0.1); }
-        .pulse-locked { border-color: #e74c3c; color: #e74c3c; background: rgba(231, 76, 60, 0.1); }
-        .pulse-echo { border-color: #9b59b6; color: #9b59b6; background: rgba(155, 89, 182, 0.1); }
+        button:hover {
+            background: var(--hk-gold);
+            color: black;
+            box-shadow: 0 0 30px var(--hk-gold);
+        }
+
+        .hidden { display: none !important; }
+
+        /* Animation for when you take damage/time penalty */
+        .flash-red {
+            animation: flashRed 0.3s;
+        }
+        @keyframes flashRed {
+            0% { box-shadow: 0 0 0 0 rgba(196, 30, 58, 0); }
+            50% { box-shadow: 0 0 50px 20px rgba(196, 30, 58, 0.5) inset; }
+            100% { box-shadow: 0 0 0 0 rgba(196, 30, 58, 0); }
+        }
 
     </style>
 </head>
 <body>
 
-<div id="game-container">
-    <!-- Header -->
-    <div class="header-container">
-        <div class="stat-box">
-            <div class="label">Score</div>
-            <div class="value" id="score-val">0</div>
-        </div>
-        <div class="stat-box">
-            <div class="label">Best</div>
-            <div class="value" id="highscore-val">0</div>
-        </div>
-    </div>
-
-    <div id="pulse-indicator" class="pulse-normal">STATUS: NORMAL</div>
-
-    <!-- Canvas Container -->
-    <div class="canvas-wrapper">
-        <canvas id="gameCanvas"></canvas>
-    </div>
-
-    <!-- Start Screen -->
-    <div id="start-screen" class="modal-overlay">
-        <h1>PULSE GRID</h1>
-        <p>Drag blocks to fill rows.<br>Blocks float above your finger.</p>
-        <button id="btn-start">TAP TO PLAY</button>
-    </div>
-
-    <!-- Game Over -->
-    <div id="game-over" class="modal-overlay hidden">
-        <h1 style="color: #e74c3c;">GRID LOCKED</h1>
-        <p>Final Score: <span id="final-score">0</span></p>
-        <button id="btn-restart">PLAY AGAIN</button>
-    </div>
-</div>
-
-<script>
-/**
- * PULSE GRID - FIXED & RESTORED
- * Uses the exact "Block Blast" Reference Layout Method
- */
-
-class PulseGrid {
-    constructor() {
-        this.canvas = document.getElementById('gameCanvas');
-        this.ctx = this.canvas.getContext('2d');
-        this.wrapper = document.querySelector('.canvas-wrapper');
-
-        // Config
-        this.COLS = 10;
-        this.ROWS = 10;
-        this.GAP = 2;
+    <div id="game-container">
+        <h1>Hell's Kitchen</h1>
         
-        // Dimensions
-        this.width = 0;
-        this.height = 0;
-        this.blockSize = 0;
-        this.boardX = 0;
-        this.boardY = 0;
+        <div class="hud">
+            <span>DISHES: <span id="score">0</span></span>
+            <span><span id="timer-text">30</span>s</span>
+        </div>
 
-        // State
-        this.grid = [];
-        this.hand = [];
-        this.score = 0;
-        this.highScore = localStorage.getItem('pulseHigh') || 0;
-        this.moves = 0;
-        this.gameState = 'IDLE'; 
+        <div class="bar-container">
+            <div id="timer-bar"></div>
+        </div>
+        <div id="chop-progress">PREPARE TO SLICE</div>
 
-        // Mechanics
-        this.pulseMode = 'NORMAL';
-        this.pulseTimer = 0;
-        this.lockedCells = [];
-        this.fallingPieces = [];
+        <!-- The Board -->
+        <!-- Event listener is on the board to catch clicks anywhere on it -->
+        <div id="cutting-board" onclick="handleChop(event)">
+            <div id="food-item"></div>
+        </div>
 
-        // Input
-        this.draggingShape = null;
-        this.dragOffsetX = 0;
-        this.dragOffsetY = 0;
-        this.touchOffsetY = 100; 
+        <div id="feedback-overlay"></div>
 
-        this.colors = ['#3498db', '#2ecc71', '#9b59b6', '#f1c40f', '#e67e22', '#e74c3c', '#1abc9c'];
-        this.shapesDB = [
-            [[1]], [[1,1]], [[1],[1]], [[1,1,1]], [[1],[1],[1]],
-            [[1,1],[1,1]], [[1,0],[1,1]], [[0,1],[1,1]],
-            [[1,1,1],[0,1,0]], [[1,1,1],[1,0,0]], [[1,1,1],[0,0,1]]
+        <!-- Start Screen -->
+        <div id="start-screen">
+            <h1 style="font-size: 2rem; text-shadow:none; color:var(--hk-gold)">YES CHEF!</h1>
+            <p style="font-size: 1.2rem">Click rapidly to SLICE the ingredients.</p>
+            <p style="color:#888">Don't be a donkey.</p>
+            <button onclick="startGame()">Start Service</button>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="game-over-screen" class="hidden">
+            <h1 id="end-title" style="color:var(--hk-red); font-size: 4rem;">GET OUT!</h1>
+            <p id="end-reason" style="font-size: 1.5rem;">The Risotto is burnt.</p>
+            <p>Dishes Served: <span id="final-score" style="color:var(--hk-gold)">0</span></p>
+            <button onclick="startGame()">Restart Service</button>
+        </div>
+    </div>
+
+    <script>
+        // Game Configuration
+        const INITIAL_TIME = 30;
+        
+        // Game State
+        let score = 0;
+        let timeLeft = INITIAL_TIME;
+        let gameInterval;
+        let isPlaying = false;
+        
+        let currentItem = {};
+        let cutsRemaining = 0;
+        let maxCuts = 0;
+
+        // Assets
+        const foods = [
+            { emoji: '🍅', name: 'Tomato', cuts: 5 },
+            { emoji: '🥒', name: 'Cucumber', cuts: 6 },
+            { emoji: '🍆', name: 'Aubergine', cuts: 6 },
+            { emoji: '🥔', name: 'Potato', cuts: 8 },
+            { emoji: '🥕', name: 'Carrot', cuts: 7 },
+            { emoji: '🥩', name: 'Beef', cuts: 12 },
+            { emoji: '🐟', name: 'Salmon', cuts: 9 },
+            { emoji: '🍞', name: 'Bread', cuts: 5 },
+            { emoji: '🧀', name: 'Cheese', cuts: 4 }
         ];
 
-        // Resize Listener
-        window.addEventListener('resize', () => this.resize());
-        
-        // Bind Inputs
-        this.bindInput();
-        
-        // Initial setup
-        document.getElementById('highscore-val').innerText = this.highScore;
-        this.resize();
-        this.reset();
-        
-        // Start Loop
-        requestAnimationFrame(() => this.loop());
-    }
+        const insults = [
+            "IT'S RAW!",
+            "YOU DONKEY!",
+            "GET OUT!",
+            "WAKE UP!",
+            "DISGUSTING!",
+            "LOOK AT IT!",
+            "WHERE IS THE LAMB SAUCE?!",
+            "YOU COOK LIKE A OLD SHOE!",
+            "MADNESS!"
+        ];
 
-    resize() {
-        // Calculate size based on wrapper (Block Blast Method)
-        const rect = this.wrapper.getBoundingClientRect();
-        const pixelRatio = window.devicePixelRatio || 1;
+        const praises = [
+            "SERVICE!",
+            "BEAUTIFUL.",
+            "PERFECT.",
+            "GO, GO!",
+            "STUNNING."
+        ];
 
-        // Use 98% of available space to prevent scrolling
-        const availableW = rect.width * 0.98;
-        const availableH = rect.height * 0.98;
+        // Elements
+        const elBoard = document.getElementById('cutting-board');
+        const elFood = document.getElementById('food-item');
+        const elScore = document.getElementById('score');
+        const elTimerBar = document.getElementById('timer-bar');
+        const elTimerText = document.getElementById('timer-text');
+        const elChopText = document.getElementById('chop-progress');
+        const elFeedback = document.getElementById('feedback-overlay');
+        const elStartScreen = document.getElementById('start-screen');
+        const elGameOverScreen = document.getElementById('game-over-screen');
 
-        // Set CSS size
-        this.canvas.style.width = availableW + "px";
-        this.canvas.style.height = availableH + "px";
+        // --- Core Game Functions ---
 
-        // Set Bitmap size
-        this.canvas.width = availableW * pixelRatio;
-        this.canvas.height = availableH * pixelRatio;
-        this.ctx.scale(pixelRatio, pixelRatio);
-
-        this.width = availableW;
-        this.height = availableH;
-
-        // Calculate Block Size: Fit Grid + Hand (approx 5 blocks high)
-        const sizeW = (this.width - (this.GAP * (this.COLS + 1))) / this.COLS;
-        const sizeH = (this.height - (this.GAP * (this.ROWS + 1))) / (this.ROWS + 5); 
-        this.blockSize = Math.floor(Math.min(sizeW, sizeH));
-
-        // Center Grid
-        const gridPixelW = (this.blockSize * this.COLS) + (this.GAP * (this.COLS - 1));
-        this.boardX = (this.width - gridPixelW) / 2;
-        this.boardY = 10; 
-
-        // Hand Position (Bottom)
-        this.handY = this.boardY + (this.blockSize * this.ROWS) + (this.GAP * this.ROWS) + 20;
-        this.touchOffsetY = this.blockSize * 2.5; // Lift piece above finger
-
-        if(this.hand.length > 0) this.repositionHand();
-    }
-
-    reset() {
-        this.grid = Array(this.ROWS).fill().map(() => Array(this.COLS).fill(null));
-        this.score = 0;
-        this.moves = 0;
-        this.pulseMode = 'NORMAL';
-        this.pulseTimer = 0;
-        this.lockedCells = [];
-        this.gameState = 'IDLE';
-        this.fallingPieces = [];
-        this.updateUI();
-        document.getElementById('game-over').classList.add('hidden');
-        this.spawnHand();
-    }
-
-    spawnHand() {
-        this.hand = [];
-        for(let i=0; i<3; i++) {
-            const t = this.shapesDB[Math.floor(Math.random()*this.shapesDB.length)];
-            const c = this.colors[Math.floor(Math.random()*this.colors.length)];
-            this.hand.push({ 
-                matrix: t, color: c, 
-                x: 0, y: 0, homeX: 0, homeY: 0, isDragging: false 
-            });
-        }
-        this.repositionHand();
-        this.checkGameOver();
-    }
-
-    repositionHand() {
-        const slotW = this.width / 3;
-        this.hand.forEach((s, i) => {
-            if(!s.isDragging) {
-                const sw = s.matrix[0].length * this.blockSize;
-                // Center in slot
-                s.homeX = (i * slotW) + (slotW/2) - (sw/2);
-                s.homeY = this.handY + this.blockSize; 
-                s.x = s.homeX;
-                s.y = s.homeY;
-            }
-        });
-    }
-
-    // --- LOGIC ---
-    triggerPulse() {
-        const m = ['GRAVITY', 'LOCKED', 'ECHO'];
-        if(Math.random()<0.3) { this.pulseMode='NORMAL'; this.pulseTimer=0; }
-        else {
-            this.pulseMode = m[Math.floor(Math.random()*m.length)];
-            this.pulseTimer = Math.floor(Math.random()*3)+3;
-        }
-        if(this.pulseMode==='LOCKED') this.spawnLocks(); else this.lockedCells=[];
-        this.updateUI();
-    }
-
-    processTurn() {
-        this.moves++;
-        if(this.pulseMode!=='NORMAL') {
-            this.pulseTimer--;
-            if(this.pulseTimer<=0) { this.pulseMode='NORMAL'; this.lockedCells=[]; }
-        } else if(this.moves%5===0) this.triggerPulse();
-        this.updateUI();
-    }
-
-    spawnLocks() {
-        let n=0, k=0;
-        while(n<3 && k<50) {
-            let r=Math.floor(Math.random()*this.ROWS), c=Math.floor(Math.random()*this.COLS);
-            if(!this.grid[r][c] && !this.isLocked(r,c)) { this.lockedCells.push({r,c}); n++; }
-            k++;
-        }
-    }
-
-    isLocked(r, c) { return this.lockedCells.some(l => l.r===r && l.c===c); },
-
-    checkLines() {
-        let rc=[], cc=[];
-        for(let r=0; r<this.ROWS; r++) if(this.grid[r].every(v=>v)) rc.push(r);
-        for(let c=0; c<this.COLS; c++) {
-            let f=true; for(let r=0; r<this.ROWS; r++) if(!this.grid[r][c]) f=false;
-            if(f) cc.push(c);
-        }
-        if(this.pulseMode==='ECHO' && (rc.length>0||cc.length>0)) {
-            let er=[];
-            rc.forEach(r => { if(r+1<this.ROWS) er.push(r+1); if(r-1>=0) er.push(r-1); });
-            rc=[...new Set([...rc, ...er])];
-        }
-        rc.forEach(r => { for(let c=0; c<this.COLS; c++) this.grid[r][c]=null; });
-        cc.forEach(c => { for(let r=0; r<this.ROWS; r++) this.grid[r][c]=null; });
-        
-        let tot = (rc.length*this.COLS) + (cc.length*this.ROWS);
-        if(tot>0) {
-            let pts = tot*10; if(rc.length>1||cc.length>1) pts*=2;
-            this.score += pts;
-            this.updateUI();
-        }
-
-        if(this.pulseMode==='GRAVITY') this.startGravity();
-        else this.checkGameOver();
-    }
-
-    startGravity() {
-        this.fallingPieces = [];
-        let m=false;
-        for(let c=0; c<this.COLS; c++) {
-            let w = this.ROWS-1;
-            for(let r=this.ROWS-1; r>=0; r--) {
-                if(this.isLocked(r,c)) { w=r-1; continue; }
-                if(this.grid[r][c]) {
-                    if(r!==w) {
-                        m=true;
-                        this.fallingPieces.push({
-                            color: this.grid[r][c], c:c,
-                            x: this.boardX+c*(this.blockSize+this.GAP),
-                            y: this.boardY+r*(this.blockSize+this.GAP),
-                            ty: this.boardY+w*(this.blockSize+this.GAP),
-                            tr: w
-                        });
-                        this.grid[r][c]=null;
-                    }
-                    w--;
-                }
-            }
-        }
-        if(m) this.gameState='ANIMATING'; else this.checkGameOver();
-    }
-
-    updateAnim() {
-        if(this.gameState!=='ANIMATING') return;
-        let act=false; const spd=this.blockSize*0.8; 
-        this.fallingPieces.forEach(p => {
-            if(p.y < p.ty) { p.y+=spd; act=true; if(p.y>=p.ty) p.y=p.ty; }
-        });
-        if(!act) {
-            this.fallingPieces.forEach(p => this.grid[p.tr][p.c]=p.color);
-            this.fallingPieces=[]; this.gameState='IDLE'; this.checkGameOver();
-        }
-    }
-
-    canPlace(s, gr, gc) {
-        for(let r=0; r<s.matrix.length; r++) {
-            for(let c=0; c<s.matrix[r].length; c++) {
-                if(s.matrix[r][c]) {
-                    let tr=gr+r, tc=gc+c;
-                    if(tr<0||tr>=this.ROWS||tc<0||tc>=this.COLS) return false;
-                    if(this.grid[tr][tc] || this.isLocked(tr,tc)) return false;
-                }
-            }
-        }
-        return true;
-    }
-
-    placeShape(s, gr, gc) {
-        for(let r=0; r<s.matrix.length; r++) {
-            for(let c=0; c<s.matrix[r].length; c++) {
-                if(s.matrix[r][c]) this.grid[gr+r][gc+c]=s.color;
-            }
-        }
-        this.score += s.matrix.flat().filter(x=>x).length;
-        this.updateUI();
-        this.hand = this.hand.filter(h => h!==s);
-        this.processTurn();
-        this.checkLines();
-        if(this.hand.length===0) this.spawnHand();
-    }
-
-    checkGameOver() {
-        if(this.gameState==='ANIMATING'||this.hand.length===0) return;
-        let pos=false;
-        for(let s of this.hand) {
-            for(let r=0; r<this.ROWS; r++) {
-                for(let c=0; c<this.COLS; c++) if(this.canPlace(s,r,c)) { pos=true; break; }
-                if(pos) break;
-            }
-            if(pos) break;
-        }
-        if(!pos) {
-            this.gameState='GAMEOVER';
-            document.getElementById('final-score').innerText=this.score;
-            if(this.score>this.highScore) {
-                this.highScore=this.score;
-                localStorage.setItem('pulseHigh', this.highScore);
-            }
-            document.getElementById('game-over').classList.remove('hidden');
-        }
-    }
-    
-    updateUI() {
-        document.getElementById('score-val').innerText=this.score;
-        document.getElementById('highscore-val').innerText=this.highScore;
-        const b = document.getElementById('pulse-indicator');
-        b.className = '';
-        if(this.pulseMode==='NORMAL') { b.classList.add('pulse-normal'); b.innerText="STATUS: NORMAL"; }
-        else {
-            b.classList.add(`pulse-${this.pulseMode.toLowerCase()}`);
-            b.innerText = `${this.pulseMode} (${this.pulseTimer})`;
-        }
-    }
-
-    // --- INPUT ---
-    getPointer(e) {
-        // Precise Coordinate Mapping relative to Canvas
-        const r = this.canvas.getBoundingClientRect();
-        const cx = e.touches ? e.touches[0].clientX : e.clientX;
-        const cy = e.touches ? e.touches[0].clientY : e.clientY;
-        return { x: cx - r.left, y: cy - r.top };
-    }
-
-    bindInput() {
-        const start = (e) => {
-            if(this.gameState!=='IDLE') return;
-            const p = this.getPointer(e);
-            const pad = 30; // Generous hit area
-            for(let s of this.hand) {
-                const w = s.matrix[0].length * this.blockSize;
-                const h = s.matrix.length * this.blockSize;
-                if(p.x >= s.x-pad && p.x <= s.x+w+pad && p.y >= s.y-pad && p.y <= s.y+h+pad) {
-                    this.draggingShape = s;
-                    s.isDragging = true;
-                    this.dragOffsetX = p.x - s.x;
-                    this.dragOffsetY = p.y - s.y;
-                    break;
-                }
-            }
-        };
-
-        const move = (e) => {
-            if(!this.draggingShape) return;
-            e.preventDefault(); // Prevent scroll
-            const p = this.getPointer(e);
-            this.draggingShape.x = p.x - this.dragOffsetX;
-            // Float above finger
-            this.draggingShape.y = p.y - this.dragOffsetY - this.touchOffsetY;
-        };
-
-        const end = (e) => {
-            if(!this.draggingShape) return;
-            const s = this.draggingShape;
-            const cx = s.x + (s.matrix[0].length * this.blockSize)/2;
-            const cy = s.y + (s.matrix.length * this.blockSize)/2;
+        function startGame() {
+            score = 0;
+            timeLeft = INITIAL_TIME;
+            isPlaying = true;
             
-            // Map logic coordinates to Grid
-            const gr = Math.round((cy - this.boardY - this.blockSize/2) / (this.blockSize + this.GAP));
-            const gc = Math.round((cx - this.boardX - this.blockSize/2) / (this.blockSize + this.GAP));
-
-            if(this.canPlace(s, gr, gc)) this.placeShape(s, gr, gc);
-            else { s.x = s.homeX; s.y = s.homeY; }
+            // UI Reset
+            elScore.innerText = score;
+            elStartScreen.classList.add('hidden');
+            elGameOverScreen.classList.add('hidden');
+            elTimerBar.style.background = "linear-gradient(90deg, #ff8800, #c41e3a)";
             
-            s.isDragging = false;
-            this.draggingShape = null;
-        };
+            // Clean board
+            clearSlices();
 
-        this.canvas.addEventListener('mousedown', start);
-        window.addEventListener('mousemove', move);
-        window.addEventListener('mouseup', end);
-        
-        this.canvas.addEventListener('touchstart', start, {passive: false});
-        window.addEventListener('touchmove', move, {passive: false});
-        window.addEventListener('touchend', end, {passive: false});
-    }
+            // Start Loops
+            clearInterval(gameInterval);
+            gameInterval = setInterval(gameLoop, 100);
+            
+            nextItem();
+        }
 
-    // --- RENDER ---
-    loop() {
-        this.updateAnim();
-        this.draw();
-        requestAnimationFrame(() => this.loop());
-    }
+        function gameLoop() {
+            if (!isPlaying) return;
 
-    draw() {
-        this.ctx.clearRect(0,0,this.width,this.height);
+            timeLeft -= 0.1;
+            
+            // Update Timer UI
+            elTimerText.innerText = Math.ceil(timeLeft);
+            let percent = (timeLeft / INITIAL_TIME) * 100;
+            elTimerBar.style.width = percent + "%";
 
-        // Grid
-        for(let r=0; r<this.ROWS; r++) {
-            for(let c=0; c<this.COLS; c++) {
-                const x = this.boardX + c*(this.blockSize+this.GAP);
-                const y = this.boardY + r*(this.blockSize+this.GAP);
-                
-                this.ctx.fillStyle = '#2a2a30';
-                this.roundRect(x,y,this.blockSize,this.blockSize,4);
-                this.ctx.fill();
+            // Timer color urgency
+            if(timeLeft < 10) elTimerBar.style.background = "#c41e3a";
 
-                if(this.isLocked(r,c)) {
-                    this.ctx.fillStyle='#111'; this.ctx.fill();
-                    this.ctx.strokeStyle='#c0392b'; this.ctx.lineWidth=2;
-                    this.ctx.strokeRect(x+4,y+4,this.blockSize-8,this.blockSize-8);
-                }
-
-                if(this.grid[r][c]) this.drawBlock(x,y,this.grid[r][c]);
+            if (timeLeft <= 0) {
+                gameOver("WE ARE SHUTTING IT DOWN!");
             }
         }
 
-        // Falling Pieces
-        this.fallingPieces.forEach(p => this.drawBlock(p.x, p.y, p.color));
+        function nextItem() {
+            // Clear previous mess
+            clearSlices();
 
-        // Separator
-        this.ctx.fillStyle = '#333';
-        this.ctx.fillRect(0, this.handY-10, this.width, 2);
-
-        // Hand
-        this.hand.forEach(s => {
-            if(s.isDragging) {
-                // Ghost
-                const cx = s.x + (s.matrix[0].length * this.blockSize)/2;
-                const cy = s.y + (s.matrix.length * this.blockSize)/2;
-                const gr = Math.round((cy - this.boardY - this.blockSize/2) / (this.blockSize + this.GAP));
-                const gc = Math.round((cx - this.boardX - this.blockSize/2) / (this.blockSize + this.GAP));
-                if(this.canPlace(s, gr, gc)) {
-                    this.ctx.globalAlpha = 0.3;
-                    this.drawShapeAt(s, this.boardX+gc*(this.blockSize+this.GAP), this.boardY+gr*(this.blockSize+this.GAP), '#fff');
-                    this.ctx.globalAlpha = 1.0;
-                }
-            }
-            this.drawShape(s);
-        });
-
-        // Pulse Border
-        if(this.pulseMode!=='NORMAL') {
-            this.ctx.strokeStyle = this.pulseMode==='GRAVITY'?'#f39c12':this.pulseMode==='LOCKED'?'#e74c3c':'#9b59b6';
-            this.ctx.lineWidth = 4;
-            this.ctx.strokeRect(this.boardX-3, this.boardY-3, (this.blockSize+this.GAP)*this.COLS+2, (this.blockSize+this.GAP)*this.ROWS+2);
+            // Select new food
+            const foodData = foods[Math.floor(Math.random() * foods.length)];
+            
+            // Difficulty scaling
+            const difficulty = Math.floor(score / 4); 
+            
+            currentItem = { ...foodData };
+            maxCuts = currentItem.cuts + difficulty;
+            cutsRemaining = maxCuts;
+            
+            // Reset Main Food Visuals
+            elFood.innerText = currentItem.emoji;
+            elFood.style.transform = "scale(1)";
+            elFood.style.opacity = "1";
+            elFood.style.display = "block";
+            
+            updateChopText();
         }
-    }
 
-    drawBlock(x, y, c) {
-        this.ctx.fillStyle = c;
-        this.roundRect(x,y,this.blockSize,this.blockSize,4);
-        this.ctx.fill();
-        this.ctx.fillStyle = 'rgba(255,255,255,0.2)';
-        this.ctx.fillRect(x+2,y+2,this.blockSize-4,this.blockSize*0.3);
-    }
-
-    drawShape(s) {
-        const size = s.isDragging ? this.blockSize : this.blockSize*0.9;
-        const g = s.isDragging ? this.GAP : 2;
-        if(s.isDragging) { this.ctx.shadowColor='rgba(0,0,0,0.5)'; this.ctx.shadowBlur=15; this.ctx.shadowOffsetY=15; }
-        
-        for(let r=0; r<s.matrix.length; r++) {
-            for(let c=0; c<s.matrix[r].length; c++) {
-                if(s.matrix[r][c]) {
-                    this.ctx.fillStyle = s.color;
-                    this.roundRect(s.x + c*(size+g), s.y + r*(size+g), size, size, 4);
-                    this.ctx.fill();
-                }
-            }
+        function updateChopText() {
+            elChopText.innerText = `${currentItem.name.toUpperCase()}: ${cutsRemaining} SLICES NEEDED`;
         }
-        this.ctx.shadowColor='transparent'; this.ctx.shadowBlur=0; this.ctx.shadowOffsetY=0;
-    }
 
-    drawShapeAt(s, x, y, c) {
-        for(let r=0; r<s.matrix.length; r++) {
-            for(let c=0; c<s.matrix[r].length; c++) {
-                if(s.matrix[r][c]) {
-                    this.ctx.fillStyle = c;
-                    this.roundRect(x + c*(this.blockSize+this.GAP), y + r*(this.blockSize+this.GAP), this.blockSize, this.blockSize, 4);
-                    this.ctx.fill();
-                }
+        // --- Interaction Logic ---
+
+        function handleChop(e) {
+            if (!isPlaying || cutsRemaining <= 0) return;
+
+            // 1. Logic
+            cutsRemaining--;
+            
+            // 2. Visual: The Slash Line
+            createSlash(e.clientX, e.clientY);
+            
+            // 3. Visual: The Slice flying off
+            createSlicePiece();
+
+            // 4. Visual: Shrink the main food
+            const percentLeft = cutsRemaining / maxCuts;
+            // Scale goes from 1 down to 0
+            elFood.style.transform = `scale(${percentLeft})`;
+            
+            // Play nice sound effect (optional/conceptual)
+            
+            if (cutsRemaining <= 0) {
+                // Done!
+                elFood.style.display = "none"; // Hide main food
+                dishComplete();
+            } else {
+                updateChopText();
             }
         }
-    }
 
-    roundRect(x, y, w, h, r) {
-        this.ctx.beginPath();
-        this.ctx.moveTo(x+r, y); this.ctx.lineTo(x+w-r, y); this.ctx.quadraticCurveTo(x+w, y, x+w, y+r);
-        this.ctx.lineTo(x+w, y+h-r); this.ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
-        this.ctx.lineTo(x+r, y+h); this.ctx.quadraticCurveTo(x, y+h, x, y+h-r);
-        this.ctx.lineTo(x, y+r); this.ctx.quadraticCurveTo(x, y, x+r, y);
-        this.ctx.closePath();
-    }
-}
+        function createSlash(x, y) {
+            const slash = document.createElement('div');
+            slash.className = 'slash-effect';
+            
+            // Calculate relative position within the board
+            const rect = elBoard.getBoundingClientRect();
+            const relX = x - rect.left;
+            const relY = y - rect.top;
 
-// Global App Instance
-let GameApp;
+            slash.style.left = relX + 'px';
+            slash.style.top = relY + 'px';
+            
+            // Random angle for the slash
+            const angle = Math.floor(Math.random() * 180);
+            slash.style.setProperty('--angle', angle + 'deg');
 
-// UI Handlers
-document.getElementById('btn-start').onclick = startGame;
-document.getElementById('btn-start').ontouchstart = (e) => { e.preventDefault(); startGame(); };
-document.getElementById('btn-restart').onclick = () => GameApp.reset();
+            elBoard.appendChild(slash);
 
-// FORCE HEIGHT LOGIC
-window.onload = () => {
-    const setH = () => document.body.style.height = window.innerHeight + "px";
-    window.addEventListener("resize", setH);
-    setH();
-    
-    // Create Instance
-    GameApp = new PulseGrid();
-};
-</script>
+            // Cleanup DOM
+            setTimeout(() => slash.remove(), 200);
+        }
+
+        function createSlicePiece() {
+            const slice = document.createElement('div');
+            slice.className = 'food-slice';
+            slice.innerText = currentItem.emoji;
+            
+            // Random scattering logic
+            // Start at center
+            slice.style.left = "50%";
+            slice.style.top = "50%";
+            
+            // Random destination
+            const moveX = (Math.random() - 0.5) * 400; // -200 to 200
+            const moveY = (Math.random() - 0.5) * 300; // -150 to 150
+            const rotation = Math.random() * 360;
+            
+            // Apply styles
+            // We translate -50% -50% to center it, then add the random movement
+            slice.style.transform = `translate(-50%, -50%) translate(0px, 0px) rotate(0deg)`;
+            
+            elBoard.appendChild(slice);
+
+            // Force reflow to trigger transition
+            void slice.offsetWidth;
+
+            // Animate out
+            // We squash it (scaleY 0.2) to look like a slice
+            slice.style.transition = "transform 0.4s ease-out";
+            slice.style.transform = `translate(-50%, -50%) translate(${moveX}px, ${moveY}px) rotate(${rotation}deg) scale(0.8, 0.2)`;
+        }
+
+        function clearSlices() {
+            // Remove all .food-slice elements
+            const slices = document.querySelectorAll('.food-slice');
+            slices.forEach(el => el.remove());
+        }
+
+        function dishComplete() {
+            score++;
+            elScore.innerText = score;
+            timeLeft = Math.min(timeLeft + 3, 40); // Bonus time
+            
+            showFeedback(true);
+            
+            // Small delay before next item so user sees the empty board
+            setTimeout(nextItem, 200);
+        }
+
+        function showFeedback(isGood) {
+            const text = isGood 
+                ? praises[Math.floor(Math.random() * praises.length)]
+                : insults[Math.floor(Math.random() * insults.length)];
+            
+            elFeedback.innerText = text;
+            elFeedback.style.color = isGood ? "var(--hk-gold)" : "var(--hk-red)";
+            elFeedback.style.opacity = "1";
+            elFeedback.style.transform = "translate(-50%, -50%) scale(1.5)";
+            elFeedback.style.transition = "all 0.1s ease-out";
+
+            setTimeout(() => {
+                elFeedback.style.opacity = "0";
+                elFeedback.style.transform = "translate(-50%, -50%) scale(1)";
+                elFeedback.style.transition = "all 0.5s ease-in";
+            }, 500);
+        }
+
+        function gameOver(reason) {
+            isPlaying = false;
+            clearInterval(gameInterval);
+            
+            const randomInsult = insults[Math.floor(Math.random() * insults.length)];
+            
+            document.getElementById('end-title').innerText = randomInsult;
+            document.getElementById('end-reason').innerText = `You managed ${score} dishes before failing.`;
+            document.getElementById('final-score').innerText = score;
+            
+            elGameOverScreen.classList.remove('hidden');
+        }
+
+    </script>
 </body>
 </html>
