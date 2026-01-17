@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HELL'S KITCHEN: Slicer Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>HELL'S KITCHEN: Click Anywhere</title>
     <style>
         :root {
             --hk-red: #c41e3a;
@@ -23,6 +23,8 @@
             height: 100vh;
             overflow: hidden;
             user-select: none;
+            cursor: crosshair; /* The whole screen is now the target */
+            touch-action: manipulation; /* Improves touch response */
         }
 
         /* --- UI Elements --- */
@@ -31,6 +33,7 @@
             width: 100%;
             max-width: 600px;
             position: relative;
+            pointer-events: none; /* Let clicks pass through container to body */
         }
 
         h1 {
@@ -42,6 +45,7 @@
             text-shadow: 4px 4px 0px var(--hk-red);
             font-style: italic;
             margin-bottom: 10px;
+            pointer-events: auto;
         }
 
         .hud {
@@ -52,6 +56,7 @@
             font-weight: bold;
             color: var(--hk-gold);
             text-shadow: 1px 1px 2px black;
+            pointer-events: auto;
         }
 
         /* --- The Cutting Board --- */
@@ -63,19 +68,19 @@
             height: 350px;
             margin: 15px 20px;
             position: relative;
-            cursor: crosshair; /* Changes cursor to crosshair */
             box-shadow: 0 15px 30px rgba(0,0,0,0.7) inset, 0 10px 20px rgba(0,0,0,0.5);
-            overflow: hidden; /* Keeps slices inside */
+            overflow: hidden;
             display: flex;
             align-items: center;
             justify-content: center;
+            pointer-events: auto; /* Catch clicks specifically here too */
         }
 
         /* The Main Food Item (Uncut) */
         #food-item {
             font-size: 9rem;
             z-index: 5;
-            transition: transform 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: transform 0.05s linear; /* Faster transition for snappiness */
             filter: drop-shadow(0 10px 10px rgba(0,0,0,0.5));
         }
 
@@ -83,23 +88,22 @@
         .food-slice {
             position: absolute;
             font-size: 5rem;
-            pointer-events: none; /* Let clicks pass through to board */
+            pointer-events: none;
             z-index: 2;
             opacity: 1;
-            /* Flatten it to look like a slice */
             transform-origin: center;
             filter: brightness(0.9);
         }
 
-        /* The "Slash" visual effect */
+        /* The "Slash" visual effect - Now Global */
         .slash-effect {
             position: absolute;
-            height: 4px;
+            height: 6px;
             background: white;
-            width: 150px;
+            width: 200px;
             box-shadow: 0 0 10px white, 0 0 20px var(--hk-red);
             pointer-events: none;
-            z-index: 10;
+            z-index: 9999;
             border-radius: 50%;
             animation: slashAnim 0.15s linear forwards;
         }
@@ -120,6 +124,7 @@
             overflow: hidden;
             border: 2px solid #555;
             position: relative;
+            pointer-events: auto;
         }
 
         #timer-bar {
@@ -135,6 +140,7 @@
             color: #aaa;
             letter-spacing: 2px;
             height: 30px;
+            pointer-events: auto;
         }
 
         /* --- Feedback Overlays --- */
@@ -157,7 +163,7 @@
 
         /* --- Screens --- */
         #start-screen, #game-over-screen {
-            position: absolute;
+            position: fixed;
             top: 0;
             left: 0;
             width: 100%;
@@ -169,6 +175,7 @@
             justify-content: center;
             z-index: 50;
             backdrop-filter: blur(5px);
+            pointer-events: auto; /* Ensure buttons work */
         }
 
         button {
@@ -183,6 +190,7 @@
             margin-top: 30px;
             transition: all 0.2s;
             box-shadow: 0 0 10px var(--hk-gold);
+            pointer-events: auto;
         }
 
         button:hover {
@@ -192,16 +200,6 @@
         }
 
         .hidden { display: none !important; }
-
-        /* Animation for when you take damage/time penalty */
-        .flash-red {
-            animation: flashRed 0.3s;
-        }
-        @keyframes flashRed {
-            0% { box-shadow: 0 0 0 0 rgba(196, 30, 58, 0); }
-            50% { box-shadow: 0 0 50px 20px rgba(196, 30, 58, 0.5) inset; }
-            100% { box-shadow: 0 0 0 0 rgba(196, 30, 58, 0); }
-        }
 
     </style>
 </head>
@@ -218,31 +216,30 @@
         <div class="bar-container">
             <div id="timer-bar"></div>
         </div>
-        <div id="chop-progress">PREPARE TO SLICE</div>
+        <div id="chop-progress">CLICK ANYWHERE!</div>
 
         <!-- The Board -->
-        <!-- Event listener is on the board to catch clicks anywhere on it -->
-        <div id="cutting-board" onclick="handleChop(event)">
+        <div id="cutting-board">
             <div id="food-item"></div>
         </div>
 
         <div id="feedback-overlay"></div>
+    </div>
 
-        <!-- Start Screen -->
-        <div id="start-screen">
-            <h1 style="font-size: 2rem; text-shadow:none; color:var(--hk-gold)">YES CHEF!</h1>
-            <p style="font-size: 1.2rem">Click rapidly to SLICE the ingredients.</p>
-            <p style="color:#888">Don't be a donkey.</p>
-            <button onclick="startGame()">Start Service</button>
-        </div>
+    <!-- Start Screen -->
+    <div id="start-screen">
+        <h1 style="font-size: 2rem; text-shadow:none; color:var(--hk-gold)">YES CHEF!</h1>
+        <p style="font-size: 1.2rem">TAP ANYWHERE TO CHOP</p>
+        <p style="color:#888">Don't be a donkey.</p>
+        <button id="start-btn">Start Service</button>
+    </div>
 
-        <!-- Game Over Screen -->
-        <div id="game-over-screen" class="hidden">
-            <h1 id="end-title" style="color:var(--hk-red); font-size: 4rem;">GET OUT!</h1>
-            <p id="end-reason" style="font-size: 1.5rem;">The Risotto is burnt.</p>
-            <p>Dishes Served: <span id="final-score" style="color:var(--hk-gold)">0</span></p>
-            <button onclick="startGame()">Restart Service</button>
-        </div>
+    <!-- Game Over Screen -->
+    <div id="game-over-screen" class="hidden">
+        <h1 id="end-title" style="color:var(--hk-red); font-size: 4rem;">GET OUT!</h1>
+        <p id="end-reason" style="font-size: 1.5rem;">The Risotto is burnt.</p>
+        <p>Dishes Served: <span id="final-score" style="color:var(--hk-gold)">0</span></p>
+        <button id="restart-btn">Restart Service</button>
     </div>
 
     <script>
@@ -302,6 +299,28 @@
         const elFeedback = document.getElementById('feedback-overlay');
         const elStartScreen = document.getElementById('start-screen');
         const elGameOverScreen = document.getElementById('game-over-screen');
+        
+        // Button Listeners
+        document.getElementById('start-btn').addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent this click from triggering a chop
+            startGame();
+        });
+        document.getElementById('restart-btn').addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent this click from triggering a chop
+            startGame();
+        });
+
+        // --- GLOBAL INPUT HANDLER ---
+        // Using 'pointerdown' triggers faster than 'click'
+        document.addEventListener('pointerdown', (e) => {
+            // Ignore if game isn't playing
+            if (!isPlaying) return;
+
+            // Ignore if clicking a button
+            if (e.target.tagName === 'BUTTON') return;
+
+            handleGlobalChop(e.clientX, e.clientY);
+        });
 
         // --- Core Game Functions ---
 
@@ -316,10 +335,8 @@
             elGameOverScreen.classList.add('hidden');
             elTimerBar.style.background = "linear-gradient(90deg, #ff8800, #c41e3a)";
             
-            // Clean board
             clearSlices();
 
-            // Start Loops
             clearInterval(gameInterval);
             gameInterval = setInterval(gameLoop, 100);
             
@@ -330,13 +347,10 @@
             if (!isPlaying) return;
 
             timeLeft -= 0.1;
-            
-            // Update Timer UI
             elTimerText.innerText = Math.ceil(timeLeft);
             let percent = (timeLeft / INITIAL_TIME) * 100;
             elTimerBar.style.width = percent + "%";
 
-            // Timer color urgency
             if(timeLeft < 10) elTimerBar.style.background = "#c41e3a";
 
             if (timeLeft <= 0) {
@@ -345,20 +359,14 @@
         }
 
         function nextItem() {
-            // Clear previous mess
             clearSlices();
-
-            // Select new food
             const foodData = foods[Math.floor(Math.random() * foods.length)];
-            
-            // Difficulty scaling
             const difficulty = Math.floor(score / 4); 
             
             currentItem = { ...foodData };
             maxCuts = currentItem.cuts + difficulty;
             cutsRemaining = maxCuts;
             
-            // Reset Main Food Visuals
             elFood.innerText = currentItem.emoji;
             elFood.style.transform = "scale(1)";
             elFood.style.opacity = "1";
@@ -368,33 +376,29 @@
         }
 
         function updateChopText() {
-            elChopText.innerText = `${currentItem.name.toUpperCase()}: ${cutsRemaining} SLICES NEEDED`;
+            elChopText.innerText = `CLICK ANYWHERE: ${cutsRemaining} LEFT`;
         }
 
         // --- Interaction Logic ---
 
-        function handleChop(e) {
-            if (!isPlaying || cutsRemaining <= 0) return;
+        function handleGlobalChop(x, y) {
+            if (cutsRemaining <= 0) return;
 
             // 1. Logic
             cutsRemaining--;
             
-            // 2. Visual: The Slash Line
-            createSlash(e.clientX, e.clientY);
+            // 2. Visual: Slash where mouse is
+            createSlash(x, y);
             
-            // 3. Visual: The Slice flying off
+            // 3. Visual: Slice flying off (Always from center board)
             createSlicePiece();
 
-            // 4. Visual: Shrink the main food
+            // 4. Visual: Shrink main food
             const percentLeft = cutsRemaining / maxCuts;
-            // Scale goes from 1 down to 0
             elFood.style.transform = `scale(${percentLeft})`;
             
-            // Play nice sound effect (optional/conceptual)
-            
             if (cutsRemaining <= 0) {
-                // Done!
-                elFood.style.display = "none"; // Hide main food
+                elFood.style.display = "none";
                 dishComplete();
             } else {
                 updateChopText();
@@ -405,21 +409,16 @@
             const slash = document.createElement('div');
             slash.className = 'slash-effect';
             
-            // Calculate relative position within the board
-            const rect = elBoard.getBoundingClientRect();
-            const relX = x - rect.left;
-            const relY = y - rect.top;
-
-            slash.style.left = relX + 'px';
-            slash.style.top = relY + 'px';
+            // Position exactly where user clicked
+            slash.style.left = x + 'px';
+            slash.style.top = y + 'px';
             
-            // Random angle for the slash
+            // Random angle
             const angle = Math.floor(Math.random() * 180);
             slash.style.setProperty('--angle', angle + 'deg');
 
-            elBoard.appendChild(slash);
+            document.body.appendChild(slash);
 
-            // Cleanup DOM
             setTimeout(() => slash.remove(), 200);
         }
 
@@ -428,33 +427,28 @@
             slice.className = 'food-slice';
             slice.innerText = currentItem.emoji;
             
-            // Random scattering logic
-            // Start at center
+            // Start at center of board
             slice.style.left = "50%";
             slice.style.top = "50%";
             
             // Random destination
-            const moveX = (Math.random() - 0.5) * 400; // -200 to 200
-            const moveY = (Math.random() - 0.5) * 300; // -150 to 150
+            const moveX = (Math.random() - 0.5) * 500; 
+            const moveY = (Math.random() - 0.5) * 400; 
             const rotation = Math.random() * 360;
             
-            // Apply styles
-            // We translate -50% -50% to center it, then add the random movement
-            slice.style.transform = `translate(-50%, -50%) translate(0px, 0px) rotate(0deg)`;
+            slice.style.transform = `translate(-50%, -50%) translate(0px, 0px)`;
             
             elBoard.appendChild(slice);
 
-            // Force reflow to trigger transition
+            // Force reflow
             void slice.offsetWidth;
 
             // Animate out
-            // We squash it (scaleY 0.2) to look like a slice
             slice.style.transition = "transform 0.4s ease-out";
             slice.style.transform = `translate(-50%, -50%) translate(${moveX}px, ${moveY}px) rotate(${rotation}deg) scale(0.8, 0.2)`;
         }
 
         function clearSlices() {
-            // Remove all .food-slice elements
             const slices = document.querySelectorAll('.food-slice');
             slices.forEach(el => el.remove());
         }
@@ -462,12 +456,10 @@
         function dishComplete() {
             score++;
             elScore.innerText = score;
-            timeLeft = Math.min(timeLeft + 3, 40); // Bonus time
+            timeLeft = Math.min(timeLeft + 3, 40); 
             
             showFeedback(true);
-            
-            // Small delay before next item so user sees the empty board
-            setTimeout(nextItem, 200);
+            setTimeout(nextItem, 150);
         }
 
         function showFeedback(isGood) {
@@ -495,7 +487,7 @@
             const randomInsult = insults[Math.floor(Math.random() * insults.length)];
             
             document.getElementById('end-title').innerText = randomInsult;
-            document.getElementById('end-reason').innerText = `You managed ${score} dishes before failing.`;
+            document.getElementById('end-reason').innerText = `You served ${score} dishes before failing.`;
             document.getElementById('final-score').innerText = score;
             
             elGameOverScreen.classList.remove('hidden');
