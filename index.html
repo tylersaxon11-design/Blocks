@@ -3,13 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    
-    <!-- Mobile Fullscreen Meta Tags -->
+    <meta name="theme-color" content="#121212">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#121212">
-
     <title>Pulse Grid</title>
     <style>
         :root {
@@ -20,93 +16,98 @@
             --font-main: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
-        html, body {
+        * {
+            box-sizing: border-box;
+            touch-action: none; /* Critical for mobile game feel */
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            font-family: var(--font-main);
+        }
+
+        body {
             margin: 0;
             padding: 0;
-            width: 100%;
-            height: 100%;
-            /* Use dynamic viewport height to account for mobile address bars */
-            height: 100dvh; 
             background-color: var(--bg-color);
             color: var(--text-color);
-            font-family: var(--font-main);
-            overflow: hidden; /* Prevent scrolling completely */
+            overflow: hidden;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            touch-action: none; /* Disable native gestures like zoom/scroll */
-            -webkit-user-select: none; /* Disable text selection on iOS */
-            user-select: none;
+            /* Height is set by JS to handle mobile address bars */
+            height: 100vh; 
+            width: 100vw;
         }
 
-        #ui-container {
+        #game-container {
+            position: relative;
             width: 100%;
-            max-width: 600px;
+            max-width: 600px; /* Limits width on desktop */
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding-top: 10px;
+        }
+
+        /* --- UI Header --- */
+        #ui-header {
+            width: 95%;
             display: flex;
             justify-content: space-between;
-            padding: 10px 20px;
-            box-sizing: border-box;
-            z-index: 2;
-            flex-shrink: 0; /* Don't shrink the UI */
+            margin-bottom: 10px;
+            flex-shrink: 0;
+            z-index: 10;
         }
 
         .stat-box {
-            text-align: center;
             background: rgba(255, 255, 255, 0.05);
             padding: 8px 15px;
             border-radius: 12px;
-            min-width: 80px;
+            min-width: 90px;
+            text-align: center;
+            backdrop-filter: blur(5px);
         }
 
-        .label {
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            color: #aaa;
-            letter-spacing: 1px;
-        }
-
-        .value {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #fff;
-        }
+        .label { font-size: 0.75rem; text-transform: uppercase; color: #aaa; letter-spacing: 1px; }
+        .value { font-size: 1.4rem; font-weight: 800; color: #fff; }
 
         #pulse-indicator {
-            margin-top: 5px;
-            padding: 10px 20px;
-            background: #333;
-            border-radius: 25px;
-            font-size: 1rem;
+            width: 95%;
+            padding: 10px 0;
+            background: #222;
+            border-radius: 20px;
+            font-size: 0.9rem;
             font-weight: bold;
             text-align: center;
-            border: 2px solid #555;
+            border: 2px solid #444;
             transition: all 0.3s ease;
-            width: 90%;
-            max-width: 500px;
-            z-index: 2;
+            margin-bottom: 5px;
             flex-shrink: 0;
+            z-index: 10;
+            text-transform: uppercase;
         }
 
+        /* --- Canvas --- */
         canvas {
+            border-radius: 8px;
+            width: 96%; /* CSS width */
+            flex-grow: 1; /* Fills remaining space */
             background-color: var(--grid-bg);
-            border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
-            margin: 10px 0;
-            cursor: pointer;
-            z-index: 1;
-            touch-action: none;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            margin-bottom: 10px;
         }
 
-        /* Overlays */
-        .overlay {
+        /* --- Overlays --- */
+        .modal-overlay {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            height: 100dvh;
-            background: rgba(18, 18, 18, 0.98);
+            background: rgba(18, 18, 18, 0.96);
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -116,56 +117,40 @@
             text-align: center;
         }
 
-        .hidden {
-            opacity: 0;
-            pointer-events: none;
-        }
+        .hidden { opacity: 0; pointer-events: none; }
 
-        h1 {
-            font-size: 3rem;
-            margin-bottom: 20px;
-            color: var(--highlight);
-            text-shadow: 0 0 20px var(--highlight);
-        }
-
-        p {
-            font-size: 1.2rem;
-            color: #ddd;
-            margin: 10px 20px;
-            line-height: 1.5;
-            max-width: 400px;
-        }
+        h1 { font-size: 3rem; margin: 0 0 10px 0; color: var(--highlight); text-shadow: 0 0 20px rgba(0,255,242,0.5); }
+        p { font-size: 1.1rem; color: #ccc; margin: 10px 20px; line-height: 1.5; max-width: 400px; }
 
         button {
-            padding: 20px 40px;
-            font-size: 1.4rem;
+            padding: 18px 36px;
+            font-size: 1.2rem;
             background: var(--highlight);
             border: none;
             border-radius: 12px;
             color: #000;
-            font-weight: bold;
+            font-weight: 800;
             cursor: pointer;
             margin-top: 30px;
-            box-shadow: 0 0 20px rgba(0, 255, 242, 0.4);
-            -webkit-tap-highlight-color: transparent;
+            box-shadow: 0 0 20px rgba(0, 255, 242, 0.3);
+            text-transform: uppercase;
         }
-
-        button:active {
-            transform: scale(0.95);
-        }
+        button:active { transform: scale(0.95); }
 
         /* Status Colors */
         .pulse-normal { border-color: #555; color: #fff; }
-        .pulse-gravity { border-color: #f39c12; color: #f39c12; background: #2e2005; }
-        .pulse-locked { border-color: #e74c3c; color: #e74c3c; background: #2c0b0b; }
-        .pulse-echo { border-color: #9b59b6; color: #9b59b6; background: #1a0524; }
-        
+        .pulse-gravity { border-color: #f39c12; color: #f39c12; background: rgba(243, 156, 18, 0.1); }
+        .pulse-locked { border-color: #e74c3c; color: #e74c3c; background: rgba(231, 76, 60, 0.1); }
+        .pulse-echo { border-color: #9b59b6; color: #9b59b6; background: rgba(155, 89, 182, 0.1); }
+
     </style>
 </head>
 <body>
 
-    <!-- UI Elements -->
-    <div id="ui-container">
+<div id="game-container">
+    
+    <!-- UI Header -->
+    <div id="ui-header">
         <div class="stat-box">
             <div class="label">Score</div>
             <div class="value" id="score-val">0</div>
@@ -176,657 +161,702 @@
         </div>
     </div>
 
+    <!-- Status Bar -->
     <div id="pulse-indicator" class="pulse-normal">STATUS: NORMAL</div>
+
+    <!-- The Game Board -->
     <canvas id="gameCanvas"></canvas>
 
     <!-- Start Screen -->
-    <div id="start-screen" class="overlay">
+    <div id="start-screen" class="modal-overlay">
         <h1>PULSE GRID</h1>
-        <p>Drag blocks to fill rows.</p>
-        <p style="font-size: 1rem; color: #888; margin-top: 5px;">Blocks float above your finger for easy placement.</p>
+        <p>Drag blocks to fill the grid.</p>
+        <p style="font-size: 0.9rem; color: #888;">Blocks float above your finger for visibility.</p>
         <button id="start-btn">TAP TO START</button>
     </div>
 
     <!-- Game Over Screen -->
-    <div id="game-over" class="overlay hidden">
-        <h1 style="color: #e74c3c; text-shadow: 0 0 15px #e74c3c;">GRID LOCKED</h1>
+    <div id="game-over" class="modal-overlay hidden">
+        <h1 style="color: #e74c3c; text-shadow: 0 0 20px #e74c3c;">GRID LOCKED</h1>
         <p>Final Score: <span id="final-score">0</span></p>
-        <button onclick="resetGame()">PLAY AGAIN</button>
+        <button onclick="Game.reset()">PLAY AGAIN</button>
     </div>
+
+</div>
 
 <script>
 /**
- * PULSE GRID - MOBILE FULLSCREEN EDITION
+ * PULSE GRID - OPTIMIZED MOBILE LAYOUT
+ * Uses dynamic viewport sizing and devicePixelRatio scaling
  */
 
-// --- Configuration ---
-const COLS = 10;
-const ROWS = 10;
-const GAP = 2; 
-
-// Base size used for logic, but rendering is scaled dynamically
-let BASE_BLOCK_SIZE = 40; 
-let SCALE = 1; 
-let TOUCH_OFFSET_Y = 120; // How far up the piece floats
-
-const COLORS = [
-    '#3498db', '#2ecc71', '#9b59b6', '#f1c40f', '#e67e22', '#e74c3c', '#1abc9c'
-];
-
-// --- Game State ---
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-const scoreEl = document.getElementById('score-val');
-const highScoreEl = document.getElementById('highscore-val');
-const pulseEl = document.getElementById('pulse-indicator');
-const gameOverScreen = document.getElementById('game-over');
-const startScreen = document.getElementById('start-screen');
-const startBtn = document.getElementById('start-btn');
-const finalScoreEl = document.getElementById('final-score');
-
-let grid = []; 
-let hand = []; 
-let score = 0;
-let highScore = localStorage.getItem('pulseHigh') || 0;
-let moves = 0;
-
-// Dragging State
-let draggingShape = null;
-let dragX = 0;
-let dragY = 0;
-
-let gameState = 'START'; 
-let fallingPieces = []; 
-let pulseMode = 'NORMAL'; 
-let pulseTimer = 0; 
-let lockedCells = []; 
-
-// Define Shapes
-const SHAPES = [
-    [[1]], [[1,1]], [[1],[1]], [[1,1,1]], [[1],[1],[1]],
-    [[1,1],[1,1]], [[1,0],[1,1]], [[0,1],[1,1]],
-    [[1,1,1],[0,1,0]], [[1,1,1],[1,0,0]], [[1,1,1],[0,0,1]]
-];
-
-// --- Initialization & Resizing ---
-
-function resize() {
-    // Get actual viewport size (ignoring address bar if possible via innerHeight)
-    const maxWidth = window.innerWidth;
-    const maxHeight = window.innerHeight;
+const Game = {
+    canvas: document.getElementById('gameCanvas'),
+    ctx: null,
     
-    // Reserve vertical space for UI (Score + Status + Bottom Buffer)
-    // We calculate this dynamically to be safe
-    const uiHeight = 180; 
+    // Config
+    COLS: 10,
+    ROWS: 10,
+    GAP: 2,
     
-    // The available height for the canvas
-    const availableHeight = maxHeight - uiHeight;
-
-    // Dimensions of the logical grid including the "Hand" area at bottom
-    // Grid = 10 blocks + Hand Area (~4 blocks height equivalent)
-    const logicalGridWidth = (BASE_BLOCK_SIZE + GAP) * COLS + GAP;
-    const logicalGridHeight = (BASE_BLOCK_SIZE + GAP) * ROWS + GAP + 140; // + Hand area
-
-    // Determine scale factor
-    const scaleW = (maxWidth * 0.96) / logicalGridWidth; // 96% width for margins
-    const scaleH = (availableHeight * 0.96) / logicalGridHeight;
+    // Dynamic Dimensions (Calculated in resize)
+    width: 0,
+    height: 0,
+    pixelRatio: 1,
+    blockSize: 0,
+    boardX: 0,
+    boardY: 0,
+    handY: 0,
     
-    SCALE = Math.min(scaleW, scaleH);
-
-    // Limit max scale
-    if (SCALE > 1.6) SCALE = 1.6;
-
-    canvas.width = logicalGridWidth * SCALE;
-    canvas.height = logicalGridHeight * SCALE;
+    // State
+    grid: [],
+    hand: [],
+    score: 0,
+    highScore: localStorage.getItem('pulseHigh') || 0,
+    moves: 0,
+    gameState: 'START', // START, IDLE, ANIMATING, GAMEOVER
     
-    // Adjust touch offset based on scale
-    TOUCH_OFFSET_Y = 110 * SCALE;
-}
+    // Dragging
+    draggingShape: null,
+    dragOffsetX: 0,
+    dragOffsetY: 0,
+    touchOffsetY: 100, // Visual offset for visibility
 
-// Mobile Fullscreen Logic
-function attemptFullscreen() {
-    const elem = document.documentElement;
-    if (elem.requestFullscreen) {
-        elem.requestFullscreen().catch(err => console.log("Fullscreen blocked or not supported", err));
-    } else if (elem.webkitRequestFullscreen) { /* Safari */
-        elem.webkitRequestFullscreen();
-    } else if (elem.msRequestFullscreen) { /* IE11 */
-        elem.msRequestFullscreen();
+    // Pulse Mechanics
+    pulseMode: 'NORMAL',
+    pulseTimer: 0,
+    lockedCells: [],
+    fallingPieces: [],
+
+    // Colors
+    colors: ['#3498db', '#2ecc71', '#9b59b6', '#f1c40f', '#e67e22', '#e74c3c', '#1abc9c'],
+    
+    // Shapes Database
+    shapesDB: [
+        [[1]], [[1,1]], [[1],[1]], [[1,1,1]], [[1],[1],[1]],
+        [[1,1],[1,1]], [[1,0],[1,1]], [[0,1],[1,1]],
+        [[1,1,1],[0,1,0]], [[1,1,1],[1,0,0]], [[1,1,1],[0,0,1]]
+    ],
+
+    init() {
+        this.ctx = this.canvas.getContext('2d');
+        
+        // Update High Score UI
+        document.getElementById('highscore-val').innerText = this.highScore;
+
+        // Resize Listener
+        window.addEventListener('resize', () => this.resize());
+        this.resize(); // Initial calculation
+
+        // Input Listeners
+        this.bindInput();
+
+        // Start Loop
+        requestAnimationFrame(() => this.loop());
+        
+        // Initial Game Setup
+        this.reset();
+    },
+
+    resize() {
+        // 1. Force Body Height (The "Block Blast" fix)
+        document.body.style.height = window.innerHeight + "px";
+
+        // 2. Get Container Dimensions
+        const container = document.getElementById('game-container');
+        const rect = container.getBoundingClientRect();
+        
+        // Calculate available space for canvas (Container - UI)
+        // We look at the space remaining in the flex container
+        // But simply taking the container height minus header heights is safer
+        const headerH = document.getElementById('ui-header').offsetHeight;
+        const statusH = document.getElementById('pulse-indicator').offsetHeight;
+        const totalUIHeight = headerH + statusH + 30; // + padding
+
+        const availableW = rect.width * 0.96; // 96% of container width
+        const availableH = rect.height - totalUIHeight - 20; // Bottom buffer
+
+        // 3. Handle High DPI (Retina)
+        this.pixelRatio = window.devicePixelRatio || 1;
+        
+        // Set Logical (CSS) Size
+        this.canvas.style.width = availableW + 'px';
+        this.canvas.style.height = availableH + 'px';
+
+        // Set Internal (Bitmap) Size
+        this.canvas.width = availableW * this.pixelRatio;
+        this.canvas.height = availableH * this.pixelRatio;
+        
+        // Scale Context
+        this.ctx.scale(this.pixelRatio, this.pixelRatio);
+
+        // 4. Calculate Grid Dimensions
+        this.width = availableW;
+        this.height = availableH;
+
+        // Calculate maximum possible block size to fit width OR height
+        // Height needs to fit: Grid (ROWS) + Gap + Divider + Hand (approx 4 blocks)
+        const sizeBasedOnWidth = (this.width - (this.GAP * (this.COLS + 1))) / this.COLS;
+        const sizeBasedOnHeight = (this.height - (this.GAP * (this.ROWS + 1))) / (this.ROWS + 5); 
+        
+        this.blockSize = Math.floor(Math.min(sizeBasedOnWidth, sizeBasedOnHeight));
+
+        // Center the Grid Horizontally
+        const totalGridW = (this.blockSize * this.COLS) + (this.GAP * (this.COLS - 1));
+        this.boardX = (this.width - totalGridW) / 2;
+        this.boardY = 10; // Top padding inside canvas
+
+        // Calculate Hand Y Position (Below Grid)
+        this.handY = this.boardY + (this.blockSize * this.ROWS) + (this.GAP * this.ROWS) + 30;
+
+        // Update touch offset based on block size
+        this.touchOffsetY = this.blockSize * 2.5;
+
+        // Re-position existing hand shapes if resize happens mid-game
+        if(this.hand.length > 0) {
+            this.repositionHand();
+        }
+    },
+
+    bindInput() {
+        const start = (e) => this.handleStart(e);
+        const move = (e) => this.handleMove(e);
+        const end = (e) => this.handleEnd(e);
+
+        this.canvas.addEventListener('mousedown', start);
+        window.addEventListener('mousemove', move);
+        window.addEventListener('mouseup', end);
+        
+        this.canvas.addEventListener('touchstart', start, {passive: false});
+        window.addEventListener('touchmove', move, {passive: false});
+        window.addEventListener('touchend', end, {passive: false});
+        
+        // Start Button
+        const btn = document.getElementById('start-btn');
+        const triggerStart = (e) => {
+            e.preventDefault();
+            this.toggleFullscreen();
+            document.getElementById('start-screen').classList.add('hidden');
+            this.resize(); // Force resize after fullscreen transition
+            this.gameState = 'IDLE';
+        };
+        btn.addEventListener('click', triggerStart);
+        btn.addEventListener('touchstart', triggerStart);
+    },
+
+    toggleFullscreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(err => console.log(err));
+        }
+    },
+
+    reset() {
+        this.grid = Array(this.ROWS).fill().map(() => Array(this.COLS).fill(null));
+        this.score = 0;
+        this.moves = 0;
+        this.pulseMode = 'NORMAL';
+        this.pulseTimer = 0;
+        this.lockedCells = [];
+        this.gameState = 'IDLE';
+        this.fallingPieces = [];
+        
+        this.updateUI();
+        document.getElementById('game-over').classList.add('hidden');
+        
+        this.spawnHand();
+    },
+
+    spawnHand() {
+        this.hand = [];
+        for(let i=0; i<3; i++) {
+            const t = this.shapesDB[Math.floor(Math.random() * this.shapesDB.length)];
+            const c = this.colors[Math.floor(Math.random() * this.colors.length)];
+            
+            // Create object
+            this.hand.push({
+                matrix: t,
+                color: c,
+                x: 0, y: 0, // Set in repositionHand
+                homeX: 0, homeY: 0,
+                isDragging: false
+            });
+        }
+        this.repositionHand();
+        this.checkGameOver();
+    },
+
+    repositionHand() {
+        const slotW = this.width / 3;
+        this.hand.forEach((shape, i) => {
+            if(!shape.isDragging) {
+                const shapePixelW = shape.matrix[0].length * this.blockSize;
+                const shapePixelH = shape.matrix.length * this.blockSize;
+                
+                const cx = (i * slotW) + (slotW / 2);
+                const cy = this.handY + (this.blockSize * 1.5); // Center in hand area
+
+                shape.homeX = cx - shapePixelW/2;
+                shape.homeY = cy - shapePixelH/2;
+                shape.x = shape.homeX;
+                shape.y = shape.homeY;
+            }
+        });
+    },
+
+    // --- LOGIC ---
+
+    triggerPulse() {
+        const modes = ['GRAVITY', 'LOCKED', 'ECHO'];
+        if (Math.random() < 0.25) {
+            this.pulseMode = 'NORMAL';
+            this.pulseTimer = 0;
+        } else {
+            this.pulseMode = modes[Math.floor(Math.random() * modes.length)];
+            this.pulseTimer = Math.floor(Math.random() * 3) + 3;
+        }
+
+        if (this.pulseMode === 'LOCKED') this.spawnLockedCells();
+        else this.lockedCells = [];
+        
+        this.updateUI();
+    },
+
+    processTurn() {
+        this.moves++;
+        if (this.pulseMode !== 'NORMAL') {
+            this.pulseTimer--;
+            if (this.pulseTimer <= 0) {
+                this.pulseMode = 'NORMAL';
+                this.lockedCells = [];
+            }
+        } else if (this.moves % 5 === 0) {
+            this.triggerPulse();
+        }
+        this.updateUI();
+    },
+
+    spawnLockedCells() {
+        let count = 0, tries = 0;
+        while(count < 3 && tries < 50) {
+            let r = Math.floor(Math.random() * this.ROWS);
+            let c = Math.floor(Math.random() * this.COLS);
+            if (!this.grid[r][c] && !this.isLocked(r,c)) {
+                this.lockedCells.push({r, c});
+                count++;
+            }
+            tries++;
+        }
+    },
+
+    isLocked(r, c) {
+        return this.lockedCells.some(cell => cell.r === r && cell.c === c);
+    },
+
+    checkLines() {
+        let rClr = [], cClr = [];
+
+        // Find full rows/cols
+        for(let r=0; r<this.ROWS; r++) if(this.grid[r].every(c => c !== null)) rClr.push(r);
+        for(let c=0; c<this.COLS; c++) {
+            let full = true;
+            for(let r=0; r<this.ROWS; r++) if(this.grid[r][c] === null) { full=false; break; }
+            if(full) cClr.push(c);
+        }
+
+        // Echo Effect
+        if (this.pulseMode === 'ECHO' && (rClr.length > 0 || cClr.length > 0)) {
+            let echoR = [];
+            rClr.forEach(r => {
+                if(r+1 < this.ROWS && !rClr.includes(r+1)) echoR.push(r+1);
+                if(r-1 >= 0 && !rClr.includes(r-1)) echoR.push(r-1);
+            });
+            rClr = [...rClr, ...echoR];
+        }
+
+        // Clear Data
+        rClr.forEach(r => { for(let c=0; c<this.COLS; c++) this.grid[r][c] = null; });
+        cClr.forEach(c => { for(let r=0; r<this.ROWS; r++) this.grid[r][c] = null; });
+
+        // Score
+        let total = (rClr.length * this.COLS) + (cClr.length * this.ROWS);
+        if(total > 0) {
+            let pts = total * 10;
+            if(rClr.length > 1 || cClr.length > 1) pts *= 2;
+            this.addScore(pts);
+        }
+
+        if(this.pulseMode === 'GRAVITY') this.startGravity();
+        else this.checkGameOver();
+    },
+
+    startGravity() {
+        this.fallingPieces = [];
+        let moved = false;
+        
+        for(let c=0; c<this.COLS; c++) {
+            let writeRow = this.ROWS - 1;
+            for(let r=this.ROWS-1; r>=0; r--) {
+                if(this.isLocked(r, c)) {
+                    writeRow = r - 1;
+                    continue;
+                }
+                if(this.grid[r][c] !== null) {
+                    if(r !== writeRow) {
+                        moved = true;
+                        this.fallingPieces.push({
+                            color: this.grid[r][c],
+                            c: c,
+                            x: this.boardX + c * (this.blockSize + this.GAP),
+                            y: this.boardY + r * (this.blockSize + this.GAP),
+                            targetY: this.boardY + writeRow * (this.blockSize + this.GAP),
+                            targetR: writeRow
+                        });
+                        this.grid[r][c] = null;
+                    }
+                    writeRow--;
+                }
+            }
+        }
+        
+        if(moved) this.gameState = 'ANIMATING';
+        else this.checkGameOver();
+    },
+
+    updateAnimation() {
+        if(this.gameState !== 'ANIMATING') return;
+        
+        let active = false;
+        const speed = this.blockSize * 0.8; // Fast fall
+
+        this.fallingPieces.forEach(p => {
+            if(p.y < p.targetY) {
+                p.y += speed;
+                active = true;
+                if(p.y >= p.targetY) p.y = p.targetY;
+            }
+        });
+
+        if(!active) {
+            this.fallingPieces.forEach(p => {
+                this.grid[p.targetR][p.c] = p.color;
+            });
+            this.fallingPieces = [];
+            this.gameState = 'IDLE';
+            this.checkGameOver();
+        }
+    },
+
+    canPlace(shape, gr, gc) {
+        for(let r=0; r<shape.matrix.length; r++) {
+            for(let c=0; c<shape.matrix[r].length; c++) {
+                if(shape.matrix[r][c] === 1) {
+                    let tr = gr + r;
+                    let tc = gc + c;
+                    if(tr < 0 || tr >= this.ROWS || tc < 0 || tc >= this.COLS) return false;
+                    if(this.grid[tr][tc] !== null) return false;
+                    if(this.isLocked(tr, tc)) return false;
+                }
+            }
+        }
+        return true;
+    },
+
+    placeShape(shape, gr, gc) {
+        for(let r=0; r<shape.matrix.length; r++) {
+            for(let c=0; c<shape.matrix[r].length; c++) {
+                if(shape.matrix[r][c] === 1) {
+                    this.grid[gr + r][gc + c] = shape.color;
+                }
+            }
+        }
+        this.addScore(shape.matrix.flat().filter(x=>x).length);
+        this.hand = this.hand.filter(s => s !== shape);
+        
+        this.processTurn();
+        this.checkLines();
+        
+        if(this.hand.length === 0) this.spawnHand();
+    },
+
+    checkGameOver() {
+        if(this.gameState === 'ANIMATING') return;
+        if(this.hand.length === 0) return;
+
+        let possible = false;
+        for(let s of this.hand) {
+            for(let r=0; r<this.ROWS; r++) {
+                for(let c=0; c<this.COLS; c++) {
+                    if(this.canPlace(s, r, c)) { possible = true; break; }
+                }
+                if(possible) break;
+            }
+            if(possible) break;
+        }
+
+        if(!possible) {
+            this.gameState = 'GAMEOVER';
+            document.getElementById('final-score').innerText = this.score;
+            if(this.score > this.highScore) {
+                this.highScore = this.score;
+                localStorage.setItem('pulseHigh', this.highScore);
+            }
+            document.getElementById('game-over').classList.remove('hidden');
+        }
+    },
+
+    addScore(pts) {
+        this.score += pts;
+        this.updateUI();
+    },
+
+    updateUI() {
+        document.getElementById('score-val').innerText = this.score;
+        document.getElementById('highscore-val').innerText = this.highScore;
+        
+        const ind = document.getElementById('pulse-indicator');
+        ind.className = '';
+        if(this.pulseMode === 'NORMAL') {
+            ind.classList.add('pulse-normal');
+            ind.innerText = "STATUS: NORMAL";
+        } else {
+            ind.classList.add(`pulse-${this.pulseMode.toLowerCase()}`);
+            let t = this.pulseMode === 'GRAVITY' ? 'GRAVITY SHIFT' : 
+                    this.pulseMode === 'LOCKED' ? 'GRID LOCKED' : 'ECHO BLAST';
+            ind.innerText = `${t} (${this.pulseTimer})`;
+        }
+    },
+
+    // --- INPUT ---
+
+    getPointerPos(e) {
+        // Since we scale the ctx, we can just use Client coordinates minus Canvas offset
+        // But we want logic coordinates relative to the canvas 0,0
+        const rect = this.canvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return {
+            x: clientX - rect.left,
+            y: clientY - rect.top
+        };
+    },
+
+    handleStart(e) {
+        if(this.gameState !== 'IDLE') return;
+        const pos = this.getPointerPos(e);
+
+        // Check Hand Collisions
+        for(let s of this.hand) {
+            const w = s.matrix[0].length * this.blockSize;
+            const h = s.matrix.length * this.blockSize;
+            // Generous hit box
+            const pad = 30;
+            if(pos.x >= s.x - pad && pos.x <= s.x + w + pad &&
+               pos.y >= s.y - pad && pos.y <= s.y + h + pad) {
+                
+                this.draggingShape = s;
+                s.isDragging = true;
+                // Grab offset
+                this.dragOffsetX = pos.x - s.x;
+                this.dragOffsetY = pos.y - s.y;
+                break;
+            }
+        }
+    },
+
+    handleMove(e) {
+        if(!this.draggingShape) return;
+        e.preventDefault(); // Prevent scrolling
+        const pos = this.getPointerPos(e);
+
+        this.draggingShape.x = pos.x - this.dragOffsetX;
+        // Float above finger logic
+        this.draggingShape.y = pos.y - this.dragOffsetY - this.touchOffsetY;
+    },
+
+    handleEnd(e) {
+        if(!this.draggingShape) return;
+
+        // Calculate closest grid position
+        // Center of the shape logic:
+        const s = this.draggingShape;
+        const cx = s.x + (s.matrix[0].length * this.blockSize)/2;
+        const cy = s.y + (s.matrix.length * this.blockSize)/2;
+
+        const gr = Math.round((cy - this.boardY - this.blockSize/2) / (this.blockSize + this.GAP));
+        const gc = Math.round((cx - this.boardX - this.blockSize/2) / (this.blockSize + this.GAP));
+
+        // Use top-left precision check as backup
+        // Or simply trust the rounded center
+        if(this.canPlace(s, gr, gc)) {
+            this.placeShape(s, gr, gc);
+        } else {
+            // Spring back
+            s.x = s.homeX;
+            s.y = s.homeY;
+        }
+
+        s.isDragging = false;
+        this.draggingShape = null;
+    },
+
+    // --- DRAW ---
+
+    loop() {
+        this.updateAnimation();
+        this.draw();
+        requestAnimationFrame(() => this.loop());
+    },
+
+    draw() {
+        // Clear
+        this.ctx.clearRect(0, 0, this.width, this.height);
+
+        // Draw Grid
+        for(let r=0; r<this.ROWS; r++) {
+            for(let c=0; c<this.COLS; c++) {
+                const x = this.boardX + c * (this.blockSize + this.GAP);
+                const y = this.boardY + r * (this.blockSize + this.GAP);
+                
+                // Empty Slot
+                this.ctx.fillStyle = '#2a2a30';
+                this.drawRoundedRect(x, y, this.blockSize, this.blockSize, 4);
+                this.ctx.fill();
+
+                // Locked
+                if(this.isLocked(r, c)) {
+                    this.ctx.fillStyle = '#1a1a1a';
+                    this.ctx.fill();
+                    this.ctx.strokeStyle = '#c0392b';
+                    this.ctx.lineWidth = 2;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x+5, y+5); this.ctx.lineTo(x+this.blockSize-5, y+this.blockSize-5);
+                    this.ctx.moveTo(x+this.blockSize-5, y+5); this.ctx.lineTo(x+5, y+this.blockSize-5);
+                    this.ctx.stroke();
+                }
+
+                // Filled
+                if(this.grid[r][c]) {
+                    this.drawBlock(x, y, this.grid[r][c]);
+                }
+            }
+        }
+
+        // Draw Falling Pieces
+        this.fallingPieces.forEach(p => {
+            this.drawBlock(p.x, p.y, p.color);
+        });
+
+        // Draw Divider
+        this.ctx.fillStyle = '#333';
+        this.ctx.fillRect(0, this.handY - 15, this.width, 2);
+
+        // Draw Hand
+        this.hand.forEach(s => {
+            // Draw Ghost if dragging
+            if(s.isDragging) {
+                const cx = s.x + (s.matrix[0].length * this.blockSize)/2;
+                const cy = s.y + (s.matrix.length * this.blockSize)/2;
+                const gr = Math.round((cy - this.boardY - this.blockSize/2) / (this.blockSize + this.GAP));
+                const gc = Math.round((cx - this.boardX - this.blockSize/2) / (this.blockSize + this.GAP));
+
+                if(this.canPlace(s, gr, gc)) {
+                    this.ctx.globalAlpha = 0.3;
+                    this.drawShapeAt(s, this.boardX + gc*(this.blockSize+this.GAP), this.boardY + gr*(this.blockSize+this.GAP), '#fff');
+                    this.ctx.globalAlpha = 1.0;
+                }
+            }
+            this.drawShape(s);
+        });
+        
+        // Border for Pulse
+        if(this.pulseMode !== 'NORMAL') {
+            const gridW = this.COLS * (this.blockSize+this.GAP) - this.GAP;
+            const gridH = this.ROWS * (this.blockSize+this.GAP) - this.GAP;
+            this.ctx.strokeStyle = this.pulseMode === 'GRAVITY' ? '#f39c12' : 
+                                   this.pulseMode === 'LOCKED' ? '#e74c3c' : '#9b59b6';
+            this.ctx.lineWidth = 4;
+            this.ctx.strokeRect(this.boardX - 4, this.boardY - 4, gridW + 8, gridH + 8);
+        }
+    },
+
+    drawBlock(x, y, color) {
+        this.ctx.fillStyle = color;
+        this.drawRoundedRect(x, y, this.blockSize, this.blockSize, 4);
+        this.ctx.fill();
+        
+        // Shine
+        this.ctx.fillStyle = 'rgba(255,255,255,0.2)';
+        this.ctx.fillRect(x+2, y+2, this.blockSize-4, this.blockSize*0.3);
+    },
+
+    drawShape(s) {
+        if(s.isDragging) {
+            this.ctx.shadowColor = 'rgba(0,0,0,0.5)';
+            this.ctx.shadowBlur = 15;
+            this.ctx.shadowOffsetY = 15;
+        }
+        
+        const size = s.isDragging ? this.blockSize : this.blockSize * 0.9; // Scale down slightly in hand
+        const gap = s.isDragging ? this.GAP : 2;
+
+        for(let r=0; r<s.matrix.length; r++) {
+            for(let c=0; c<s.matrix[r].length; c++) {
+                if(s.matrix[r][c]) {
+                    const bx = s.x + c * (size + gap);
+                    const by = s.y + r * (size + gap);
+                    
+                    this.ctx.fillStyle = s.color;
+                    this.drawRoundedRect(bx, by, size, size, 4);
+                    this.ctx.fill();
+                    
+                    this.ctx.fillStyle = 'rgba(255,255,255,0.2)';
+                    this.ctx.fillRect(bx+2, by+2, size-4, size*0.3);
+                }
+            }
+        }
+        
+        this.ctx.shadowColor = 'transparent';
+        this.ctx.shadowBlur = 0;
+        this.ctx.shadowOffsetY = 0;
+    },
+
+    drawShapeAt(s, sx, sy, color) {
+        for(let r=0; r<s.matrix.length; r++) {
+            for(let c=0; c<s.matrix[r].length; c++) {
+                if(s.matrix[r][c]) {
+                    const bx = sx + c * (this.blockSize + this.GAP);
+                    const by = sy + r * (this.blockSize + this.GAP);
+                    this.ctx.fillStyle = color || s.color;
+                    this.drawRoundedRect(bx, by, this.blockSize, this.blockSize, 4);
+                    this.ctx.fill();
+                }
+            }
+        }
+    },
+
+    drawRoundedRect(x, y, w, h, r) {
+        this.ctx.beginPath();
+        this.ctx.moveTo(x+r, y);
+        this.ctx.lineTo(x+w-r, y);
+        this.ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+        this.ctx.lineTo(x+w, y+h-r);
+        this.ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+        this.ctx.lineTo(x+r, y+h);
+        this.ctx.quadraticCurveTo(x, y+h, x, y+h-r);
+        this.ctx.lineTo(x, y+r);
+        this.ctx.quadraticCurveTo(x, y, x+r, y);
+        this.ctx.closePath();
     }
-}
-
-// Handling the Start Button
-const startGame = (e) => {
-    e.preventDefault(); // Prevent phantom clicks
-    attemptFullscreen();
-    
-    // Add a small delay to allow fullscreen transition to happen before resizing
-    setTimeout(() => {
-        resize();
-        startScreen.classList.add('hidden');
-        init();
-    }, 100);
 };
 
-startBtn.addEventListener('click', startGame);
-startBtn.addEventListener('touchstart', startGame);
-
-window.addEventListener('resize', () => {
-    // Debounce resize
-    clearTimeout(window.resizeTimer);
-    window.resizeTimer = setTimeout(() => {
-        resize();
-        draw();
-    }, 50);
-});
-
-function init() {
-    highScoreEl.innerText = highScore;
-    resize();
-    resetGame();
+window.onload = () => {
+    // Initial Fullscreen/Resize trigger
+    const setH = () => document.body.style.height = window.innerHeight + "px";
+    window.addEventListener("resize", setH);
+    setH();
     
-    // Mouse Events
-    canvas.addEventListener('mousedown', onMouseDown);
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
-    
-    // Touch Events (passive: false is crucial to prevent scrolling)
-    canvas.addEventListener('touchstart', handleTouch, { passive: false });
-    window.addEventListener('touchmove', handleTouch, { passive: false });
-    window.addEventListener('touchend', handleTouch, { passive: false });
-
-    requestAnimationFrame(loop);
-}
-
-function resetGame() {
-    grid = Array(ROWS).fill().map(() => Array(COLS).fill(null));
-    score = 0;
-    moves = 0;
-    pulseMode = 'NORMAL';
-    pulseTimer = 0;
-    lockedCells = [];
-    gameState = 'IDLE';
-    fallingPieces = [];
-    updateUI();
-    gameOverScreen.classList.add('hidden');
-    
-    spawnHand();
-}
-
-function spawnHand() {
-    hand = [];
-    for(let i=0; i<3; i++) {
-        hand.push(createRandomShape(i));
-    }
-    checkGameOver();
-}
-
-function createRandomShape(slotIndex) {
-    const template = SHAPES[Math.floor(Math.random() * SHAPES.length)];
-    const color = COLORS[Math.floor(Math.random() * COLORS.length)];
-    
-    const slotWidth = ((BASE_BLOCK_SIZE + GAP) * COLS) / 3;
-    const centerX = (slotIndex * slotWidth) + (slotWidth / 2);
-    // Position hand slightly lower relative to grid end
-    const centerY = ((BASE_BLOCK_SIZE + GAP) * ROWS) + 70;
-
-    const shapeW = template[0].length * BASE_BLOCK_SIZE;
-    const shapeH = template.length * BASE_BLOCK_SIZE;
-
-    return {
-        matrix: template,
-        color: color,
-        x: centerX - shapeW/2,
-        y: centerY - shapeH/2,
-        homeX: centerX - shapeW/2,
-        homeY: centerY - shapeH/2,
-        isDragging: false
-    };
-}
-
-// --- Logic ---
-
-function triggerPulse() {
-    const modes = ['GRAVITY', 'LOCKED', 'ECHO'];
-    if (Math.random() < 0.3) {
-        pulseMode = 'NORMAL';
-        pulseTimer = 0;
-    } else {
-        pulseMode = modes[Math.floor(Math.random() * modes.length)];
-        pulseTimer = Math.floor(Math.random() * 3) + 3;
-    }
-
-    if (pulseMode === 'LOCKED') {
-        spawnLockedCells();
-    } else {
-        lockedCells = [];
-    }
-    updateUI();
-}
-
-function processTurn() {
-    moves++;
-    if (pulseMode !== 'NORMAL') {
-        pulseTimer--;
-        if (pulseTimer <= 0) {
-            pulseMode = 'NORMAL';
-            lockedCells = [];
-        }
-    } else if (moves % 5 === 0) {
-        triggerPulse();
-    }
-    updateUI();
-}
-
-function spawnLockedCells() {
-    let locksPlaced = 0;
-    let attempts = 0;
-    while(locksPlaced < 3 && attempts < 50) {
-        let r = Math.floor(Math.random() * ROWS);
-        let c = Math.floor(Math.random() * COLS);
-        if (!grid[r][c] && !isLocked(r,c)) {
-            lockedCells.push({r, c});
-            locksPlaced++;
-        }
-        attempts++;
-    }
-}
-
-function isLocked(r, c) {
-    return lockedCells.some(cell => cell.r === r && cell.c === c);
-}
-
-function checkLines() {
-    let rowsToClear = [];
-    let colsToClear = [];
-
-    for (let r = 0; r < ROWS; r++) {
-        if (grid[r].every(cell => cell !== null)) rowsToClear.push(r);
-    }
-    for (let c = 0; c < COLS; c++) {
-        let colFilled = true;
-        for (let r = 0; r < ROWS; r++) {
-            if (grid[r][c] === null) { colFilled = false; break; }
-        }
-        if (colFilled) colsToClear.push(c);
-    }
-
-    if (pulseMode === 'ECHO' && (rowsToClear.length > 0 || colsToClear.length > 0)) {
-        let echoRows = [];
-        rowsToClear.forEach(r => {
-            if (r + 1 < ROWS && !rowsToClear.includes(r+1)) echoRows.push(r+1);
-            if (r - 1 >= 0 && !rowsToClear.includes(r-1)) echoRows.push(r-1);
-        });
-        rowsToClear = [...rowsToClear, ...echoRows];
-    }
-
-    rowsToClear.forEach(r => { for(let c=0; c<COLS; c++) grid[r][c] = null; });
-    colsToClear.forEach(c => { for(let r=0; r<ROWS; r++) grid[r][c] = null; });
-
-    let totalCells = (rowsToClear.length * COLS) + (colsToClear.length * ROWS);
-    if (totalCells > 0) {
-        let points = totalCells * 10;
-        if (rowsToClear.length > 1 || colsToClear.length > 1) points *= 2; 
-        addScore(points);
-    }
-
-    if (pulseMode === 'GRAVITY') {
-        prepareGravityAnimation();
-    } else {
-        checkGameOver();
-    }
-}
-
-function prepareGravityAnimation() {
-    fallingPieces = [];
-    let hasMovement = false;
-
-    for (let c = 0; c < COLS; c++) {
-        let writeRow = ROWS - 1;
-        for (let r = ROWS - 1; r >= 0; r--) {
-            if (isLocked(r, c)) {
-                writeRow = r - 1;
-                continue;
-            }
-            if (grid[r][c] !== null) {
-                if (r !== writeRow) {
-                    hasMovement = true;
-                    fallingPieces.push({
-                        color: grid[r][c],
-                        c: c,
-                        x: c * (BASE_BLOCK_SIZE + GAP) + GAP,
-                        y: r * (BASE_BLOCK_SIZE + GAP) + GAP, 
-                        targetY: writeRow * (BASE_BLOCK_SIZE + GAP) + GAP, 
-                        targetR: writeRow 
-                    });
-                    grid[r][c] = null; 
-                }
-                writeRow--; 
-            }
-        }
-    }
-
-    if (hasMovement) {
-        gameState = 'ANIMATING';
-    } else {
-        checkGameOver();
-    }
-}
-
-function updateAnimation() {
-    if (gameState !== 'ANIMATING') return;
-
-    let active = false;
-    const speed = 25; 
-
-    fallingPieces.forEach(p => {
-        if (p.y < p.targetY) {
-            p.y += speed;
-            active = true;
-            if (p.y >= p.targetY) p.y = p.targetY;
-        }
-    });
-
-    if (!active) {
-        fallingPieces.forEach(p => {
-            grid[p.targetR][p.c] = p.color;
-        });
-        fallingPieces = [];
-        gameState = 'IDLE';
-        checkGameOver();
-    }
-}
-
-function canPlace(shape, gridX, gridY) {
-    for (let r = 0; r < shape.matrix.length; r++) {
-        for (let c = 0; c < shape.matrix[r].length; c++) {
-            if (shape.matrix[r][c] === 1) {
-                let targetR = gridY + r;
-                let targetC = gridX + c;
-                if (targetR < 0 || targetR >= ROWS || targetC < 0 || targetC >= COLS) return false;
-                if (grid[targetR][targetC] !== null) return false;
-                if (isLocked(targetR, targetC)) return false;
-            }
-        }
-    }
-    return true;
-}
-
-function placeShape(shape, gridX, gridY) {
-    for (let r = 0; r < shape.matrix.length; r++) {
-        for (let c = 0; c < shape.matrix[r].length; c++) {
-            if (shape.matrix[r][c] === 1) {
-                grid[gridY + r][gridX + c] = shape.color;
-            }
-        }
-    }
-    
-    addScore(shape.matrix.flat().filter(x=>x===1).length); 
-    hand = hand.filter(s => s !== shape);
-    
-    processTurn();
-    checkLines();
-    
-    if (hand.length === 0) spawnHand();
-}
-
-function checkGameOver() {
-    if (gameState === 'ANIMATING') return; 
-
-    let canMove = false;
-    if(hand.length === 0) return;
-
-    for (let s of hand) {
-        for (let r = 0; r < ROWS; r++) {
-            for (let c = 0; c < COLS; c++) {
-                if (canPlace(s, c, r)) {
-                    canMove = true;
-                    break;
-                }
-            }
-            if (canMove) break;
-        }
-        if (canMove) break;
-    }
-
-    if (!canMove) {
-        gameState = 'GAMEOVER';
-        finalScoreEl.innerText = score;
-        if (score > highScore) {
-            highScore = score;
-            localStorage.setItem('pulseHigh', highScore);
-        }
-        gameOverScreen.classList.remove('hidden');
-    }
-}
-
-function addScore(pts) {
-    score += pts;
-    updateUI();
-}
-
-function updateUI() {
-    scoreEl.innerText = score;
-    highScoreEl.innerText = highScore;
-
-    pulseEl.className = ''; 
-    if (pulseMode === 'NORMAL') {
-        pulseEl.classList.add('pulse-normal');
-        pulseEl.innerText = `STATUS: NORMAL`;
-    } else {
-        pulseEl.classList.add(`pulse-${pulseMode.toLowerCase()}`);
-        let desc = "";
-        if (pulseMode === 'GRAVITY') desc = "GRAVITY SHIFT";
-        if (pulseMode === 'LOCKED') desc = "GRID LOCKED";
-        if (pulseMode === 'ECHO') desc = "ECHO BLAST";
-        pulseEl.innerText = `${desc} (${pulseTimer})`;
-    }
-}
-
-// --- Input Handling ---
-
-function getPointerPos(e) {
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    const rect = canvas.getBoundingClientRect();
-    
-    return { 
-        x: (clientX - rect.left) / SCALE, 
-        y: (clientY - rect.top) / SCALE 
-    };
-}
-
-function onMouseDown(e) {
-    if (gameState !== 'IDLE') return; 
-    const pos = getPointerPos(e);
-    
-    for (let shape of hand) {
-        const sW = shape.matrix[0].length * BASE_BLOCK_SIZE;
-        const sH = shape.matrix.length * BASE_BLOCK_SIZE;
-        const padding = 30; // Extra padding for easy grabbing
-
-        if (pos.x > shape.x - padding && pos.x < shape.x + sW + padding &&
-            pos.y > shape.y - padding && pos.y < shape.y + sH + padding) {
-            
-            draggingShape = shape;
-            shape.isDragging = true;
-            dragX = pos.x - shape.x;
-            dragY = pos.y - shape.y;
-            break;
-        }
-    }
-}
-
-function onMouseMove(e) {
-    if (!draggingShape) return;
-    const pos = getPointerPos(e);
-    
-    draggingShape.x = pos.x - dragX;
-    // Apply offset so finger doesn't cover block
-    draggingShape.y = pos.y - dragY - (TOUCH_OFFSET_Y / SCALE);
-}
-
-function onMouseUp(e) {
-    if (!draggingShape) return;
-    
-    // Calculate Grid Position based on Top-Left
-    const preciseGridX = Math.round(draggingShape.x / (BASE_BLOCK_SIZE + GAP));
-    const preciseGridY = Math.round(draggingShape.y / (BASE_BLOCK_SIZE + GAP));
-    
-    if (canPlace(draggingShape, preciseGridX, preciseGridY)) {
-        placeShape(draggingShape, preciseGridX, preciseGridY);
-    } else {
-        // Return to hand
-        draggingShape.x = draggingShape.homeX;
-        draggingShape.y = draggingShape.homeY;
-    }
-
-    draggingShape.isDragging = false;
-    draggingShape = null;
-}
-
-function handleTouch(e) {
-    // Prevent default browser scrolling/zooming
-    if(e.type === 'touchmove') e.preventDefault();
-    
-    if (e.type === 'touchstart') onMouseDown(e);
-    if (e.type === 'touchmove') onMouseMove(e);
-    if (e.type === 'touchend') onMouseUp(e);
-}
-
-// --- Rendering ---
-
-function draw() {
-    updateAnimation(); 
-
-    ctx.save();
-    ctx.scale(SCALE, SCALE); 
-    
-    ctx.clearRect(0, 0, canvas.width/SCALE, canvas.height/SCALE);
-
-    // Grid
-    for (let r = 0; r < ROWS; r++) {
-        for (let c = 0; c < COLS; c++) {
-            let x = c * (BASE_BLOCK_SIZE + GAP) + GAP;
-            let y = r * (BASE_BLOCK_SIZE + GAP) + GAP;
-
-            ctx.fillStyle = '#2a2a30';
-            ctx.fillRect(x, y, BASE_BLOCK_SIZE, BASE_BLOCK_SIZE);
-
-            if (isLocked(r, c)) {
-                ctx.fillStyle = '#222';
-                ctx.fillRect(x, y, BASE_BLOCK_SIZE, BASE_BLOCK_SIZE);
-                ctx.strokeStyle = '#e74c3c';
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                ctx.moveTo(x + 5, y + 5);
-                ctx.lineTo(x + BASE_BLOCK_SIZE - 5, y + BASE_BLOCK_SIZE - 5);
-                ctx.moveTo(x + BASE_BLOCK_SIZE - 5, y + 5);
-                ctx.lineTo(x + 5, y + BASE_BLOCK_SIZE - 5);
-                ctx.stroke();
-            }
-
-            if (grid[r][c]) {
-                ctx.fillStyle = grid[r][c];
-                ctx.fillRect(x, y, BASE_BLOCK_SIZE, BASE_BLOCK_SIZE);
-                ctx.fillStyle = 'rgba(255,255,255,0.2)';
-                ctx.fillRect(x, y, BASE_BLOCK_SIZE, 4);
-                ctx.fillRect(x, y, 4, BASE_BLOCK_SIZE);
-            }
-        }
-    }
-
-    // Animating Pieces
-    fallingPieces.forEach(p => {
-        ctx.fillStyle = p.color;
-        ctx.fillRect(p.x, p.y, BASE_BLOCK_SIZE, BASE_BLOCK_SIZE);
-        ctx.fillStyle = 'rgba(255,255,255,0.2)';
-        ctx.fillRect(p.x, p.y, BASE_BLOCK_SIZE, 4);
-        ctx.fillRect(p.x, p.y, 4, BASE_BLOCK_SIZE);
-    });
-
-    // Border
-    if (pulseMode !== 'NORMAL') {
-        ctx.strokeStyle = pulseMode === 'GRAVITY' ? '#f39c12' : 
-                          pulseMode === 'LOCKED' ? '#e74c3c' : '#9b59b6';
-        ctx.lineWidth = 6;
-        ctx.strokeRect(0, 0, COLS * (BASE_BLOCK_SIZE+GAP) + GAP, ROWS * (BASE_BLOCK_SIZE+GAP) + GAP);
-    }
-
-    // Hand Divider
-    ctx.fillStyle = '#444';
-    ctx.fillRect(0, ROWS * (BASE_BLOCK_SIZE+GAP) + GAP + 10, (BASE_BLOCK_SIZE * COLS) + 30, 2);
-
-    // Shapes
-    for (let shape of hand) {
-        drawShape(shape);
-    }
-
-    // Ghost Preview
-    if (draggingShape && gameState === 'IDLE') {
-        const preciseGridX = Math.round(draggingShape.x / (BASE_BLOCK_SIZE + GAP));
-        const preciseGridY = Math.round(draggingShape.y / (BASE_BLOCK_SIZE + GAP));
-        
-        if (canPlace(draggingShape, preciseGridX, preciseGridY)) {
-            ctx.globalAlpha = 0.5;
-            drawShapeAtGrid(draggingShape, preciseGridX, preciseGridY, null, true);
-            ctx.globalAlpha = 1.0;
-        }
-    }
-
-    ctx.restore();
-    requestAnimationFrame(loop);
-}
-
-function drawShape(shape) {
-    if (shape.isDragging) {
-        ctx.shadowColor = 'rgba(0,0,0,0.8)';
-        ctx.shadowBlur = 20;
-    }
-    for (let r = 0; r < shape.matrix.length; r++) {
-        for (let c = 0; c < shape.matrix[r].length; c++) {
-            if (shape.matrix[r][c] === 1) {
-                let x = shape.x + c * BASE_BLOCK_SIZE;
-                let y = shape.y + r * BASE_BLOCK_SIZE;
-                let size = BASE_BLOCK_SIZE - 2; 
-
-                ctx.fillStyle = shape.color;
-                ctx.fillRect(x, y, size, size);
-                ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-                ctx.lineWidth = 2;
-                ctx.strokeRect(x,y,size,size);
-            }
-        }
-    }
-    ctx.shadowColor = 'transparent';
-    ctx.shadowBlur = 0;
-}
-
-function drawShapeAtGrid(shape, gridX, gridY, overrideColor, isGhost) {
-    for (let r = 0; r < shape.matrix.length; r++) {
-        for (let c = 0; c < shape.matrix[r].length; c++) {
-            if (shape.matrix[r][c] === 1) {
-                let x = (gridX + c) * (BASE_BLOCK_SIZE + GAP) + GAP;
-                let y = (gridY + r) * (BASE_BLOCK_SIZE + GAP) + GAP;
-                
-                if (isGhost) {
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-                    ctx.fillRect(x, y, BASE_BLOCK_SIZE, BASE_BLOCK_SIZE);
-                    ctx.strokeStyle = '#fff';
-                    ctx.lineWidth = 2;
-                    ctx.strokeRect(x, y, BASE_BLOCK_SIZE, BASE_BLOCK_SIZE);
-                } else {
-                    ctx.fillStyle = overrideColor || shape.color;
-                    ctx.fillRect(x, y, BASE_BLOCK_SIZE, BASE_BLOCK_SIZE);
-                }
-            }
-        }
-    }
-}
-
-function loop() {
-    draw();
-}
+    Game.init();
+};
 
 </script>
 </body>
