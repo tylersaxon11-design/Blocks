@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HELL'S KITCHEN: Click Anywhere</title>
+    <title>HELL'S KITCHEN: Chop & Serve</title>
     <style>
         :root {
             --hk-red: #c41e3a;
             --hk-dark: #111;
             --hk-gold: #d4af37;
+            --hk-steel: #8e9eab;
         }
 
         body {
@@ -19,91 +20,155 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
             height: 100vh;
             overflow: hidden;
             user-select: none;
-            cursor: crosshair; /* The whole screen is now the target */
-            touch-action: manipulation; /* Improves touch response */
+            touch-action: none; /* Prevents scrolling */
         }
 
         /* --- UI Elements --- */
         #game-container {
-            text-align: center;
             width: 100%;
+            height: 100%;
             max-width: 600px;
             position: relative;
-            pointer-events: none; /* Let clicks pass through container to body */
+            display: flex;
+            flex-direction: column;
         }
 
-        h1 {
-            font-size: 3rem;
-            margin: 0;
+        /* --- THE SERVICE PASS (Drop Zone) --- */
+        #service-pass {
+            height: 120px;
+            background: linear-gradient(180deg, #555, #888 20%, #bbb 50%, #888 80%, #555);
+            border-bottom: 5px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.8);
+            z-index: 10;
+        }
+
+        #service-label {
+            font-size: 2rem;
+            font-weight: 900;
+            color: rgba(0,0,0,0.4);
             text-transform: uppercase;
             letter-spacing: 5px;
-            color: white;
-            text-shadow: 4px 4px 0px var(--hk-red);
-            font-style: italic;
-            margin-bottom: 10px;
-            pointer-events: auto;
+            pointer-events: none;
         }
 
-        .hud {
+        /* Highlight when dragging over */
+        .highlight-pass {
+            box-shadow: 0 0 30px var(--hk-gold) inset !important;
+            border-bottom: 5px solid var(--hk-gold) !important;
+        }
+
+        /* --- HUD --- */
+        .hud-container {
+            padding: 10px 20px;
             display: flex;
             justify-content: space-between;
-            font-size: 1.5rem;
-            padding: 0 20px;
+            font-size: 1.2rem;
             font-weight: bold;
             color: var(--hk-gold);
             text-shadow: 1px 1px 2px black;
-            pointer-events: auto;
+            pointer-events: none;
         }
 
-        /* --- The Cutting Board --- */
+        .bar-container {
+            width: 90%;
+            margin: 0 auto;
+            background: #222;
+            height: 15px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 2px solid #555;
+            margin-bottom: 10px;
+        }
+
+        #timer-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #ff8800, #c41e3a);
+            width: 100%;
+            transition: width 0.1s linear;
+        }
+
+        #instruction-text {
+            text-align: center;
+            font-size: 1.5rem;
+            height: 30px;
+            color: white;
+            font-weight: bold;
+            text-transform: uppercase;
+            pointer-events: none;
+            text-shadow: 0 2px 4px black;
+        }
+
+        /* --- THE KITCHEN STATION (Bottom Area) --- */
+        #station-area {
+            flex-grow: 1;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #2a2a2a; /* Dark floor */
+        }
+
         #cutting-board {
+            width: 80%;
+            height: 60%;
             background: #5c4033;
             background-image: repeating-linear-gradient(90deg, #5c4033 0, #5c4033 20px, #523a2e 20px, #523a2e 22px);
             border: 8px solid #3e2b22;
             border-radius: 15px;
-            height: 350px;
-            margin: 15px 20px;
             position: relative;
-            box-shadow: 0 15px 30px rgba(0,0,0,0.7) inset, 0 10px 20px rgba(0,0,0,0.5);
-            overflow: hidden;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
             display: flex;
-            align-items: center;
             justify-content: center;
-            pointer-events: auto; /* Catch clicks specifically here too */
+            align-items: center;
         }
 
-        /* The Main Food Item (Uncut) */
+        /* --- The Food Item --- */
         #food-item {
-            font-size: 9rem;
-            z-index: 5;
-            transition: transform 0.05s linear; /* Faster transition for snappiness */
-            filter: drop-shadow(0 10px 10px rgba(0,0,0,0.5));
+            font-size: 7rem;
+            z-index: 100;
+            cursor: grab;
+            position: absolute; /* Needed for dragging */
+            touch-action: none;
+            filter: drop-shadow(0 10px 5px rgba(0,0,0,0.5));
+            transition: transform 0.1s;
         }
 
-        /* The Sliced Pieces */
+        #food-item.plated {
+            filter: drop-shadow(0 15px 15px rgba(0,0,0,0.8));
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        /* Sliced bits flying off */
         .food-slice {
             position: absolute;
-            font-size: 5rem;
+            font-size: 4rem;
             pointer-events: none;
-            z-index: 2;
+            z-index: 50;
             opacity: 1;
-            transform-origin: center;
-            filter: brightness(0.9);
         }
 
-        /* The "Slash" visual effect - Now Global */
+        /* Slash effect */
         .slash-effect {
             position: absolute;
-            height: 6px;
+            height: 5px;
             background: white;
-            width: 200px;
+            width: 150px;
             box-shadow: 0 0 10px white, 0 0 20px var(--hk-red);
             pointer-events: none;
-            z-index: 9999;
+            z-index: 200;
             border-radius: 50%;
             animation: slashAnim 0.15s linear forwards;
         }
@@ -114,42 +179,13 @@
             100% { transform: translate(-50%, -50%) scaleX(1) rotate(var(--angle)); opacity: 0; }
         }
 
-        /* --- Progress Bars --- */
-        .bar-container {
-            width: 90%;
-            margin: 0 auto;
-            background: #222;
-            height: 25px;
-            border-radius: 12px;
-            overflow: hidden;
-            border: 2px solid #555;
-            position: relative;
-            pointer-events: auto;
-        }
-
-        #timer-bar {
-            height: 100%;
-            background: linear-gradient(90deg, #ff8800, #c41e3a);
-            width: 100%;
-            transition: width 0.1s linear;
-        }
-
-        #chop-progress {
-            margin-top: 5px;
-            font-size: 1.2rem;
-            color: #aaa;
-            letter-spacing: 2px;
-            height: 30px;
-            pointer-events: auto;
-        }
-
-        /* --- Feedback Overlays --- */
+        /* --- Feedback --- */
         #feedback-overlay {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 5rem;
+            font-size: 4rem;
             font-weight: 900;
             color: white;
             -webkit-text-stroke: 2px var(--hk-red);
@@ -157,8 +193,8 @@
             text-shadow: 4px 4px 0px black;
             opacity: 0;
             pointer-events: none;
+            z-index: 500;
             white-space: nowrap;
-            z-index: 20;
         }
 
         /* --- Screens --- */
@@ -173,9 +209,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            z-index: 50;
-            backdrop-filter: blur(5px);
-            pointer-events: auto; /* Ensure buttons work */
+            z-index: 1000;
         }
 
         button {
@@ -190,7 +224,6 @@
             margin-top: 30px;
             transition: all 0.2s;
             box-shadow: 0 0 10px var(--hk-gold);
-            pointer-events: auto;
         }
 
         button:hover {
@@ -206,21 +239,28 @@
 <body>
 
     <div id="game-container">
-        <h1>Hell's Kitchen</h1>
-        
-        <div class="hud">
-            <span>DISHES: <span id="score">0</span></span>
-            <span><span id="timer-text">30</span>s</span>
+        <!-- The Service Pass (Drop Zone) -->
+        <div id="service-pass">
+            <div id="service-label">SERVICE PASS</div>
         </div>
 
+        <div class="hud-container">
+            <span>DISHES: <span id="score">0</span></span>
+            <span><span id="timer-text">45</span>s</span>
+        </div>
+        
         <div class="bar-container">
             <div id="timer-bar"></div>
         </div>
-        <div id="chop-progress">CLICK ANYWHERE!</div>
+        
+        <div id="instruction-text">PREPARE TO COOK</div>
 
-        <!-- The Board -->
-        <div id="cutting-board">
-            <div id="food-item"></div>
+        <!-- The Station -->
+        <div id="station-area">
+            <div id="cutting-board">
+                <!-- Food Item sits here -->
+                <div id="food-item"></div>
+            </div>
         </div>
 
         <div id="feedback-overlay"></div>
@@ -228,23 +268,23 @@
 
     <!-- Start Screen -->
     <div id="start-screen">
-        <h1 style="font-size: 2rem; text-shadow:none; color:var(--hk-gold)">YES CHEF!</h1>
-        <p style="font-size: 1.2rem">TAP ANYWHERE TO CHOP</p>
-        <p style="color:#888">Don't be a donkey.</p>
+        <h1 style="color:var(--hk-gold); font-size: 2.5rem; text-transform:uppercase;">Line Cook Simulator</h1>
+        <p style="font-size: 1.2rem; margin: 10px 0;">1. TAP to chop ingredients.</p>
+        <p style="font-size: 1.2rem; margin: 10px 0;">2. DRAG finished dish to the PASS.</p>
         <button id="start-btn">Start Service</button>
     </div>
 
     <!-- Game Over Screen -->
     <div id="game-over-screen" class="hidden">
-        <h1 id="end-title" style="color:var(--hk-red); font-size: 4rem;">GET OUT!</h1>
-        <p id="end-reason" style="font-size: 1.5rem;">The Risotto is burnt.</p>
+        <h1 id="end-title" style="color:var(--hk-red); font-size: 3rem;">SHUT IT DOWN!</h1>
+        <p id="end-reason" style="font-size: 1.5rem;">Disaster.</p>
         <p>Dishes Served: <span id="final-score" style="color:var(--hk-gold)">0</span></p>
         <button id="restart-btn">Restart Service</button>
     </div>
 
     <script>
-        // Game Configuration
-        const INITIAL_TIME = 30;
+        // Config
+        const INITIAL_TIME = 45;
         
         // Game State
         let score = 0;
@@ -252,90 +292,114 @@
         let gameInterval;
         let isPlaying = false;
         
+        // Item State
         let currentItem = {};
         let cutsRemaining = 0;
         let maxCuts = 0;
+        let isReadyToServe = false;
+
+        // Dragging State
+        let isDragging = false;
+        let dragOffsetX = 0;
+        let dragOffsetY = 0;
 
         // Assets
-        const foods = [
-            { emoji: '🍅', name: 'Tomato', cuts: 5 },
-            { emoji: '🥒', name: 'Cucumber', cuts: 6 },
-            { emoji: '🍆', name: 'Aubergine', cuts: 6 },
-            { emoji: '🥔', name: 'Potato', cuts: 8 },
-            { emoji: '🥕', name: 'Carrot', cuts: 7 },
-            { emoji: '🥩', name: 'Beef', cuts: 12 },
-            { emoji: '🐟', name: 'Salmon', cuts: 9 },
-            { emoji: '🍞', name: 'Bread', cuts: 5 },
-            { emoji: '🧀', name: 'Cheese', cuts: 4 }
+        // raw: ingredient emoji, plated: finished dish emoji
+        const recipes = [
+            { raw: '🍅', plated: '🍝', name: 'Pasta', cuts: 5 },
+            { raw: '🥩', plated: '🥘', name: 'Beef Welly', cuts: 8 },
+            { raw: '🐔', plated: '🍗', name: 'Chicken', cuts: 6 },
+            { raw: '🐟', plated: '🍣', name: 'Salmon', cuts: 7 },
+            { raw: '🥬', plated: '🥗', name: 'Salad', cuts: 4 },
+            { raw: '🥔', plated: '🍟', name: 'Fries', cuts: 5 },
+            { raw: '🍄', plated: '🥣', name: 'Risotto', cuts: 6 }
         ];
 
         const insults = [
+            "WAKE UP!",
+            "GET OUT!",
             "IT'S RAW!",
             "YOU DONKEY!",
-            "GET OUT!",
-            "WAKE UP!",
-            "DISGUSTING!",
-            "LOOK AT IT!",
-            "WHERE IS THE LAMB SAUCE?!",
-            "YOU COOK LIKE A OLD SHOE!",
-            "MADNESS!"
+            "PATHETIC!",
+            "TOUCH THE FISH!",
+            "WHERE'S THE LAMB SAUCE?!"
         ];
 
         const praises = [
             "SERVICE!",
-            "BEAUTIFUL.",
-            "PERFECT.",
-            "GO, GO!",
-            "STUNNING."
+            "AWAY.",
+            "GO.",
+            "NICE.",
+            "BEAUTIFUL."
         ];
 
         // Elements
+        const elContainer = document.getElementById('game-container');
+        const elPass = document.getElementById('service-pass');
         const elBoard = document.getElementById('cutting-board');
         const elFood = document.getElementById('food-item');
         const elScore = document.getElementById('score');
-        const elTimerBar = document.getElementById('timer-bar');
         const elTimerText = document.getElementById('timer-text');
-        const elChopText = document.getElementById('chop-progress');
+        const elTimerBar = document.getElementById('timer-bar');
+        const elInstruct = document.getElementById('instruction-text');
         const elFeedback = document.getElementById('feedback-overlay');
         const elStartScreen = document.getElementById('start-screen');
         const elGameOverScreen = document.getElementById('game-over-screen');
+
+        // --- BUTTONS ---
+        document.getElementById('start-btn').addEventListener('click', startGame);
+        document.getElementById('restart-btn').addEventListener('click', startGame);
+
+        // --- INPUT HANDLERS (Unified Pointer Events) ---
         
-        // Button Listeners
-        document.getElementById('start-btn').addEventListener('click', (e) => {
-            e.stopPropagation(); // Prevent this click from triggering a chop
-            startGame();
-        });
-        document.getElementById('restart-btn').addEventListener('click', (e) => {
-            e.stopPropagation(); // Prevent this click from triggering a chop
-            startGame();
-        });
-
-        // --- GLOBAL INPUT HANDLER ---
-        // Using 'pointerdown' triggers faster than 'click'
+        // 1. POINTER DOWN (Start Chop OR Start Drag)
         document.addEventListener('pointerdown', (e) => {
-            // Ignore if game isn't playing
             if (!isPlaying) return;
-
-            // Ignore if clicking a button
             if (e.target.tagName === 'BUTTON') return;
 
-            handleGlobalChop(e.clientX, e.clientY);
+            // Check if we are clicking on the food AND it is ready to serve
+            if (isReadyToServe && e.target.id === 'food-item') {
+                startDrag(e);
+            } 
+            // Otherwise, if it's NOT ready to serve, we chop
+            else if (!isReadyToServe) {
+                handleChop(e.clientX, e.clientY);
+            }
         });
 
-        // --- Core Game Functions ---
+        // 2. POINTER MOVE (Drag Logic)
+        document.addEventListener('pointermove', (e) => {
+            if (isDragging) {
+                e.preventDefault(); // Stop scrolling
+                const x = e.clientX - dragOffsetX;
+                const y = e.clientY - dragOffsetY;
+                elFood.style.left = `${x}px`;
+                elFood.style.top = `${y}px`;
+                
+                checkPassHover(e.clientX, e.clientY);
+            }
+        });
+
+        // 3. POINTER UP (End Drag / Check Drop)
+        document.addEventListener('pointerup', (e) => {
+            if (isDragging) {
+                stopDrag(e);
+            }
+        });
+
+
+        // --- GAME LOOP ---
 
         function startGame() {
             score = 0;
             timeLeft = INITIAL_TIME;
             isPlaying = true;
+            isDragging = false;
             
-            // UI Reset
-            elScore.innerText = score;
+            elScore.innerText = 0;
             elStartScreen.classList.add('hidden');
             elGameOverScreen.classList.add('hidden');
             elTimerBar.style.background = "linear-gradient(90deg, #ff8800, #c41e3a)";
-            
-            clearSlices();
 
             clearInterval(gameInterval);
             gameInterval = setInterval(gameLoop, 100);
@@ -345,121 +409,191 @@
 
         function gameLoop() {
             if (!isPlaying) return;
-
+            
             timeLeft -= 0.1;
             elTimerText.innerText = Math.ceil(timeLeft);
+            
             let percent = (timeLeft / INITIAL_TIME) * 100;
             elTimerBar.style.width = percent + "%";
-
-            if(timeLeft < 10) elTimerBar.style.background = "#c41e3a";
-
+            
+            if (timeLeft < 10) elTimerBar.style.background = "#c41e3a";
+            
             if (timeLeft <= 0) {
-                gameOver("WE ARE SHUTTING IT DOWN!");
+                gameOver();
             }
         }
 
         function nextItem() {
-            clearSlices();
-            const foodData = foods[Math.floor(Math.random() * foods.length)];
-            const difficulty = Math.floor(score / 4); 
+            // Remove old slices
+            document.querySelectorAll('.food-slice').forEach(el => el.remove());
+
+            const recipe = recipes[Math.floor(Math.random() * recipes.length)];
+            const difficulty = Math.floor(score / 5);
             
-            currentItem = { ...foodData };
+            currentItem = { ...recipe };
             maxCuts = currentItem.cuts + difficulty;
             cutsRemaining = maxCuts;
+            isReadyToServe = false;
+
+            // Reset Food Position to Center of Board
+            elFood.style.position = 'absolute';
+            elFood.style.transform = 'translate(-50%, -50%) scale(1)';
+            elFood.style.left = '50%';
+            elFood.style.top = '50%';
             
-            elFood.innerText = currentItem.emoji;
-            elFood.style.transform = "scale(1)";
-            elFood.style.opacity = "1";
-            elFood.style.display = "block";
+            // Set Visuals
+            elFood.innerText = currentItem.raw;
+            elFood.className = ''; // remove plated class
+            elFood.style.opacity = '1';
             
-            updateChopText();
+            updateInstruction();
         }
 
-        function updateChopText() {
-            elChopText.innerText = `CLICK ANYWHERE: ${cutsRemaining} LEFT`;
-        }
-
-        // --- Interaction Logic ---
-
-        function handleGlobalChop(x, y) {
-            if (cutsRemaining <= 0) return;
-
-            // 1. Logic
-            cutsRemaining--;
-            
-            // 2. Visual: Slash where mouse is
-            createSlash(x, y);
-            
-            // 3. Visual: Slice flying off (Always from center board)
-            createSlicePiece();
-
-            // 4. Visual: Shrink main food
-            const percentLeft = cutsRemaining / maxCuts;
-            elFood.style.transform = `scale(${percentLeft})`;
-            
-            if (cutsRemaining <= 0) {
-                elFood.style.display = "none";
-                dishComplete();
+        function updateInstruction() {
+            if (isReadyToServe) {
+                elInstruct.innerText = `SERVE THE ${currentItem.name}!`;
+                elInstruct.style.color = "var(--hk-gold)";
             } else {
-                updateChopText();
+                elInstruct.innerText = `CHOP: ${cutsRemaining}`;
+                elInstruct.style.color = "white";
             }
         }
+
+        // --- MECHANICS ---
+
+        function handleChop(x, y) {
+            if (cutsRemaining <= 0) return;
+
+            cutsRemaining--;
+            
+            // Visuals
+            createSlash(x, y);
+            createSlicePiece();
+            
+            // Shrink effect
+            const scale = 0.5 + ((cutsRemaining / maxCuts) * 0.5);
+            elFood.style.transform = `translate(-50%, -50%) scale(${scale})`;
+
+            if (cutsRemaining <= 0) {
+                prepareForService();
+            } else {
+                updateInstruction();
+            }
+        }
+
+        function prepareForService() {
+            isReadyToServe = true;
+            
+            // Transform Visuals
+            elFood.innerText = currentItem.plated;
+            elFood.classList.add('plated');
+            elFood.style.transform = 'translate(-50%, -50%) scale(1)'; // Reset size
+            
+            updateInstruction();
+        }
+
+        // --- DRAG AND DROP ---
+
+        function startDrag(e) {
+            isDragging = true;
+            
+            // Calculate offset so element doesn't jump to mouse center
+            const rect = elFood.getBoundingClientRect();
+            dragOffsetX = e.clientX - rect.left;
+            dragOffsetY = e.clientY - rect.top;
+
+            // Determine current left/top styles (converting to pixels for smooth drag)
+            elFood.style.position = 'fixed'; // Switch to fixed for easier global dragging
+            elFood.style.left = rect.left + 'px';
+            elFood.style.top = rect.top + 'px';
+            elFood.style.transform = 'scale(1.2)'; // Pickup effect
+            elFood.style.zIndex = 1000;
+        }
+
+        function checkPassHover(x, y) {
+            const passRect = elPass.getBoundingClientRect();
+            // Check if cursor is inside the Pass box
+            if (x >= passRect.left && x <= passRect.right &&
+                y >= passRect.top && y <= passRect.bottom) {
+                elPass.classList.add('highlight-pass');
+            } else {
+                elPass.classList.remove('highlight-pass');
+            }
+        }
+
+        function stopDrag(e) {
+            isDragging = false;
+            elPass.classList.remove('highlight-pass');
+            elFood.style.transform = 'scale(1)';
+
+            const passRect = elPass.getBoundingClientRect();
+            const foodRect = elFood.getBoundingClientRect();
+
+            // Simple collision: checks if center of food is roughly inside the pass area
+            const foodCenterX = foodRect.left + foodRect.width/2;
+            const foodCenterY = foodRect.top + foodRect.height/2;
+
+            if (foodCenterY < passRect.bottom && foodCenterY > passRect.top) {
+                // Success!
+                dishServed();
+            } else {
+                // Fail: Snap back to board
+                elFood.style.transition = 'all 0.2s ease-out';
+                // Need to put it back relative to board, but simple way is just re-running nextItem visual reset logic slightly different
+                // Actually, just append it back to board container and center it
+                elFood.style.position = 'absolute';
+                elFood.style.left = '50%';
+                elFood.style.top = '50%';
+                elFood.style.transform = 'translate(-50%, -50%)';
+                
+                // Clear transition after it lands
+                setTimeout(() => { elFood.style.transition = ''; }, 200);
+            }
+        }
+
+        function dishServed() {
+            score++;
+            elScore.innerText = score;
+            timeLeft = Math.min(timeLeft + 5, 60); // Bonus time
+            
+            showFeedback(true);
+            
+            // Hide food momentarily
+            elFood.style.opacity = '0';
+            
+            setTimeout(nextItem, 300);
+        }
+
+        // --- FX ---
 
         function createSlash(x, y) {
             const slash = document.createElement('div');
             slash.className = 'slash-effect';
-            
-            // Position exactly where user clicked
             slash.style.left = x + 'px';
             slash.style.top = y + 'px';
-            
-            // Random angle
             const angle = Math.floor(Math.random() * 180);
             slash.style.setProperty('--angle', angle + 'deg');
-
             document.body.appendChild(slash);
-
             setTimeout(() => slash.remove(), 200);
         }
 
         function createSlicePiece() {
             const slice = document.createElement('div');
             slice.className = 'food-slice';
-            slice.innerText = currentItem.emoji;
-            
-            // Start at center of board
-            slice.style.left = "50%";
-            slice.style.top = "50%";
-            
-            // Random destination
-            const moveX = (Math.random() - 0.5) * 500; 
-            const moveY = (Math.random() - 0.5) * 400; 
-            const rotation = Math.random() * 360;
-            
-            slice.style.transform = `translate(-50%, -50%) translate(0px, 0px)`;
-            
-            elBoard.appendChild(slice);
+            slice.innerText = currentItem.raw;
+            slice.style.left = '50%';
+            slice.style.top = '50%';
+            slice.style.transform = 'translate(-50%, -50%)';
+            elBoard.appendChild(slice); // relative to board
 
-            // Force reflow
-            void slice.offsetWidth;
+            void slice.offsetWidth; // reflow
 
-            // Animate out
+            const moveX = (Math.random() - 0.5) * 300;
+            const moveY = (Math.random() - 0.5) * 300;
+            const rot = Math.random() * 360;
+
             slice.style.transition = "transform 0.4s ease-out";
-            slice.style.transform = `translate(-50%, -50%) translate(${moveX}px, ${moveY}px) rotate(${rotation}deg) scale(0.8, 0.2)`;
-        }
-
-        function clearSlices() {
-            const slices = document.querySelectorAll('.food-slice');
-            slices.forEach(el => el.remove());
-        }
-
-        function dishComplete() {
-            score++;
-            elScore.innerText = score;
-            timeLeft = Math.min(timeLeft + 3, 40); 
-            
-            showFeedback(true);
-            setTimeout(nextItem, 150);
+            slice.style.transform = `translate(-50%, -50%) translate(${moveX}px, ${moveY}px) rotate(${rot}deg) scale(0.6, 0.2)`;
         }
 
         function showFeedback(isGood) {
@@ -480,16 +614,12 @@
             }, 500);
         }
 
-        function gameOver(reason) {
+        function gameOver() {
             isPlaying = false;
             clearInterval(gameInterval);
-            
-            const randomInsult = insults[Math.floor(Math.random() * insults.length)];
-            
-            document.getElementById('end-title').innerText = randomInsult;
-            document.getElementById('end-reason').innerText = `You served ${score} dishes before failing.`;
+            const text = insults[Math.floor(Math.random() * insults.length)];
+            document.getElementById('end-title').innerText = text;
             document.getElementById('final-score').innerText = score;
-            
             elGameOverScreen.classList.remove('hidden');
         }
 
