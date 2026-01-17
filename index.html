@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#121212">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <title>Pulse Grid</title>
     <style>
         :root {
@@ -14,130 +16,134 @@
             --font-main: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
-        /* THE MAGIC FIX: Lock the body so it can't scroll */
-        html, body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            position: fixed; /* This prevents scrolling on iOS/Android */
-            overflow: hidden;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            font-family: var(--font-main);
-            touch-action: none; /* Disable all native gestures */
+        * {
+            box-sizing: border-box;
+            touch-action: none; /* Critical: Prevents Android "pull to refresh" or scroll */
             user-select: none;
             -webkit-user-select: none;
             -webkit-tap-highlight-color: transparent;
+            font-family: var(--font-main);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            overflow: hidden; /* Hides scrollbars */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            /* Height is set dynamically by JS to handle the Android address bar */
+            height: 100vh; 
+            width: 100%;
+            position: fixed; /* Locks the body in place */
+            top: 0; left: 0;
         }
 
         #game-container {
-            position: absolute;
-            top: 0;
-            left: 0;
+            position: relative;
             width: 100%;
+            max-width: 600px;
             height: 100%;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: flex-start;
+            padding-top: 10px;
         }
 
-        /* --- UI Elements --- */
+        /* --- UI Header --- */
         #header-area {
-            width: 100%;
-            max-width: 500px;
-            padding: 10px 20px 0 20px;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            flex-shrink: 0; /* Prevent header from shrinking */
-            z-index: 10;
-        }
-
-        .scores-row {
-            width: 100%;
+            width: 96%;
             display: flex;
             justify-content: space-between;
-            margin-bottom: 8px;
+            margin-bottom: 5px;
+            flex-shrink: 0;
+            z-index: 10;
         }
 
         .stat-box {
             background: rgba(255, 255, 255, 0.08);
-            padding: 5px 15px;
-            border-radius: 10px;
+            padding: 8px 15px;
+            border-radius: 12px;
             text-align: center;
-            min-width: 80px;
+            min-width: 90px;
+            backdrop-filter: blur(4px);
         }
-        .label { font-size: 0.7rem; color: #aaa; text-transform: uppercase; }
-        .value { font-size: 1.3rem; font-weight: bold; }
+        
+        .label { font-size: 0.75rem; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
+        .value { font-size: 1.4rem; font-weight: 800; color: #fff; }
 
         #pulse-bar {
-            width: 100%;
+            width: 96%;
             padding: 8px 0;
             background: #222;
-            border-radius: 15px;
+            border-radius: 20px;
             text-align: center;
             font-size: 0.9rem;
             font-weight: bold;
             border: 1px solid #444;
             text-transform: uppercase;
+            margin-bottom: 5px;
+            flex-shrink: 0;
         }
 
-        /* --- Canvas --- */
+        /* --- Canvas Wrapper --- */
         #canvas-wrapper {
-            flex-grow: 1; /* Take all remaining space */
+            flex-grow: 1; /* Fills remaining height exactly */
             width: 100%;
-            max-width: 500px;
             display: flex;
-            align-items: center;
             justify-content: center;
+            align-items: center; /* Vertically centers the grid */
             position: relative;
             overflow: hidden;
+            padding-bottom: 10px;
         }
 
         canvas {
             border-radius: 8px;
             background-color: var(--grid-bg);
-            box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+            box-shadow: 0 5px 25px rgba(0,0,0,0.6);
         }
 
         /* --- Overlays --- */
         .overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(18,18,18,0.95);
+            background: rgba(18, 18, 18, 0.96);
             display: flex;
             flex-direction: column;
-            align-items: center;
             justify-content: center;
+            align-items: center;
             z-index: 100;
             transition: opacity 0.3s;
         }
         .hidden { opacity: 0; pointer-events: none; }
 
-        h1 { font-size: 3rem; margin: 0; color: var(--highlight); text-shadow: 0 0 15px var(--highlight); }
-        p { color: #ccc; margin: 15px 0; max-width: 300px; text-align: center; line-height: 1.4; }
-        
+        h1 { font-size: 3rem; margin: 0 0 10px 0; color: var(--highlight); text-shadow: 0 0 20px var(--highlight); }
+        p { font-size: 1.1rem; color: #ccc; margin: 10px 20px; text-align: center; max-width: 400px; }
+
         button {
+            padding: 18px 40px;
+            font-size: 1.3rem;
             background: var(--highlight);
-            color: #000;
             border: none;
-            padding: 15px 40px;
-            font-size: 1.2rem;
-            font-weight: bold;
             border-radius: 30px;
-            margin-top: 20px;
-            box-shadow: 0 0 15px rgba(0,255,242,0.4);
+            color: #000;
+            font-weight: 800;
+            cursor: pointer;
+            margin-top: 30px;
+            box-shadow: 0 0 20px rgba(0, 255, 242, 0.4);
         }
         button:active { transform: scale(0.95); }
 
         /* Pulse Modes */
         .pulse-normal { border-color: #555; color: #fff; }
-        .pulse-gravity { border-color: #f39c12; color: #f39c12; background: rgba(243, 156, 18, 0.15); }
-        .pulse-locked { border-color: #e74c3c; color: #e74c3c; background: rgba(231, 76, 60, 0.15); }
-        .pulse-echo { border-color: #9b59b6; color: #9b59b6; background: rgba(155, 89, 182, 0.15); }
+        .pulse-gravity { border-color: #f39c12; color: #f39c12; background: rgba(243, 156, 18, 0.1); }
+        .pulse-locked { border-color: #e74c3c; color: #e74c3c; background: rgba(231, 76, 60, 0.1); }
+        .pulse-echo { border-color: #9b59b6; color: #9b59b6; background: rgba(155, 89, 182, 0.1); }
 
     </style>
 </head>
@@ -147,20 +153,20 @@
     
     <!-- UI Header -->
     <div id="header-area">
-        <div class="scores-row">
-            <div class="stat-box">
-                <div class="label">Score</div>
-                <div class="value" id="score-val">0</div>
-            </div>
-            <div class="stat-box">
-                <div class="label">Best</div>
-                <div class="value" id="highscore-val">0</div>
-            </div>
+        <div class="stat-box">
+            <div class="label">Score</div>
+            <div class="value" id="score-val">0</div>
         </div>
-        <div id="pulse-bar" class="pulse-normal">STATUS: NORMAL</div>
+        <div class="stat-box">
+            <div class="label">Best</div>
+            <div class="value" id="highscore-val">0</div>
+        </div>
     </div>
 
-    <!-- Canvas Wrapper -->
+    <!-- Pulse Status -->
+    <div id="pulse-bar" class="pulse-normal">STATUS: NORMAL</div>
+
+    <!-- Canvas -->
     <div id="canvas-wrapper">
         <canvas id="gameCanvas"></canvas>
     </div>
@@ -168,22 +174,23 @@
     <!-- Start Screen -->
     <div id="start-screen" class="overlay">
         <h1>PULSE GRID</h1>
-        <p>Drag blocks to fill the grid. Blocks float above your finger.</p>
-        <button id="start-btn">TAP TO PLAY</button>
+        <p>Drag blocks to fill the grid.<br>Blocks float above your finger.</p>
+        <button id="start-btn">TAP TO START</button>
     </div>
 
     <!-- Game Over Screen -->
     <div id="game-over" class="overlay hidden">
-        <h1 style="color: #e74c3c; text-shadow: 0 0 20px #e74c3c;">NO MOVES</h1>
+        <h1 style="color: #e74c3c; text-shadow: 0 0 20px #e74c3c;">GRID LOCKED</h1>
         <p>Final Score: <span id="final-score">0</span></p>
-        <button onclick="Game.reset()">TRY AGAIN</button>
+        <button onclick="Game.reset()">PLAY AGAIN</button>
     </div>
 
 </div>
 
 <script>
 /**
- * PULSE GRID - FIXED VIEWPORT EDITION
+ * PULSE GRID - ANDROID FULLSCREEN FIX
+ * Uses force-height logic and touch-action: none
  */
 
 const Game = {
@@ -194,7 +201,6 @@ const Game = {
     ROWS: 10,
     GAP: 2,
     
-    // Dimensions
     width: 0,
     height: 0,
     pixelRatio: 1,
@@ -202,7 +208,6 @@ const Game = {
     boardX: 0,
     boardY: 0,
     
-    // Game State
     grid: [],
     hand: [],
     score: 0,
@@ -210,13 +215,11 @@ const Game = {
     moves: 0,
     gameState: 'START',
     
-    // Pulse
     pulseMode: 'NORMAL',
     pulseTimer: 0,
     lockedCells: [],
     fallingPieces: [],
 
-    // Inputs
     draggingShape: null,
     dragOffsetX: 0,
     dragOffsetY: 0,
@@ -233,7 +236,6 @@ const Game = {
         this.ctx = this.canvas.getContext('2d');
         document.getElementById('highscore-val').innerText = this.highScore;
         
-        // Input Binding
         const start = (e) => this.handleStart(e);
         const move = (e) => this.handleMove(e);
         const end = (e) => this.handleEnd(e);
@@ -246,47 +248,49 @@ const Game = {
         window.addEventListener('touchmove', move, {passive: false});
         window.addEventListener('touchend', end, {passive: false});
 
-        // Start Button Logic
+        // ANDROID FULLSCREEN TRIGGER
         const btn = document.getElementById('start-btn');
         const trigger = (e) => {
+            // 1. Prevent Default
             e.preventDefault();
-            this.attemptFullscreen(); // Try the API
-            document.getElementById('start-screen').classList.add('hidden');
-            this.resize();
-            this.reset();
+            
+            // 2. Request Fullscreen (API)
+            const el = document.documentElement;
+            if (el.requestFullscreen) el.requestFullscreen().catch(()=>{});
+            else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+            
+            // 3. Try Lock Orientation
+            if (screen.orientation && screen.orientation.lock) {
+                screen.orientation.lock('portrait').catch(()=>{});
+            }
+
+            // 4. Force Resize after delay (to allow UI to hide)
+            setTimeout(() => {
+                this.resize();
+                document.getElementById('start-screen').classList.add('hidden');
+                this.reset();
+            }, 300);
         };
         btn.addEventListener('click', trigger);
         btn.addEventListener('touchstart', trigger);
 
-        // Resize loop
         window.addEventListener('resize', () => this.resize());
         this.resize();
-
-        // Game Loop
         requestAnimationFrame(() => this.loop());
     },
 
-    // The method from "Block Blast" to attempt fullscreen API
-    attemptFullscreen() {
-        const elem = document.documentElement;
-        if (elem.requestFullscreen) {
-            elem.requestFullscreen().catch(err => console.log(err));
-        } else if (elem.webkitRequestFullscreen) { 
-            elem.webkitRequestFullscreen();
-        }
-    },
-
     resize() {
-        // 1. Get the Wrapper dimensions (not window directly, but the flex container)
+        // --- THE MAGIC FIX FROM REFERENCE ---
+        // Force body height to match innerHeight, ignoring address bar
+        document.body.style.height = window.innerHeight + "px";
+        
         const wrapper = document.getElementById('canvas-wrapper');
         const rect = wrapper.getBoundingClientRect();
         
-        // 2. High DPI handling
         this.pixelRatio = window.devicePixelRatio || 1;
         
-        // 3. Set Canvas Dimensions
-        // We use slightly less than full width/height for padding
-        const w = rect.width * 0.96;
+        // Use 98% of available wrapper space
+        const w = rect.width * 0.98;
         const h = rect.height * 0.98;
 
         this.canvas.style.width = w + "px";
@@ -298,22 +302,19 @@ const Game = {
         this.width = w;
         this.height = h;
 
-        // 4. Calculate Block Size
-        // We need space for Grid (10) + Hand (approx 4 blocks high)
+        // Calc Block Size: Fit Grid(10) + Hand(4 rows approx)
         const sizeW = (this.width - (this.GAP * (this.COLS + 1))) / this.COLS;
-        const sizeH = (this.height - (this.GAP * (this.ROWS + 1))) / (this.ROWS + 5); 
+        const sizeH = (this.height - (this.GAP * (this.ROWS + 1))) / (this.ROWS + 4.5); 
         this.blockSize = Math.floor(Math.min(sizeW, sizeH));
 
-        // 5. Centering
+        // Center Grid
         const gridPixelW = (this.blockSize * this.COLS) + (this.GAP * (this.COLS - 1));
         this.boardX = (this.width - gridPixelW) / 2;
-        this.boardY = 10; // Padding top
+        this.boardY = 5; 
 
-        // Hand Position (Below Grid)
+        // Hand Position (Bottom)
         this.handY = this.boardY + (this.blockSize * this.ROWS) + (this.GAP * this.ROWS) + 20;
-        
-        // Update Touch Offset based on block size
-        this.touchOffsetY = this.blockSize * 2.5;
+        this.touchOffsetY = this.blockSize * 2.5; // Offset for fat fingers
 
         if(this.hand.length > 0) this.repositionHand();
     },
@@ -337,10 +338,7 @@ const Game = {
         for(let i=0; i<3; i++) {
             const t = this.shapesDB[Math.floor(Math.random()*this.shapesDB.length)];
             const c = this.colors[Math.floor(Math.random()*this.colors.length)];
-            this.hand.push({ 
-                matrix: t, color: c, 
-                x: 0, y: 0, homeX: 0, homeY: 0, isDragging: false 
-            });
+            this.hand.push({ matrix: t, color: c, x: 0, y: 0, homeX: 0, homeY: 0, isDragging: false });
         }
         this.repositionHand();
         this.checkGameOver();
@@ -351,16 +349,14 @@ const Game = {
         this.hand.forEach((s, i) => {
             if(!s.isDragging) {
                 const sw = s.matrix[0].length * this.blockSize;
-                const sh = s.matrix.length * this.blockSize;
                 s.homeX = (i * slotW) + (slotW/2) - (sw/2);
-                s.homeY = this.handY + this.blockSize; // Centered vertically in hand area
+                s.homeY = this.handY + this.blockSize; 
                 s.x = s.homeX;
                 s.y = s.homeY;
             }
         });
     },
 
-    // --- LOGIC ---
     triggerPulse() {
         const m = ['GRAVITY', 'LOCKED', 'ECHO'];
         if(Math.random()<0.3) { this.pulseMode='NORMAL'; this.pulseTimer=0; }
@@ -399,24 +395,19 @@ const Game = {
             let f=true; for(let r=0; r<this.ROWS; r++) if(!this.grid[r][c]) f=false;
             if(f) cc.push(c);
         }
-
         if(this.pulseMode==='ECHO' && (rc.length>0||cc.length>0)) {
             let er=[];
             rc.forEach(r => { if(r+1<this.ROWS) er.push(r+1); if(r-1>=0) er.push(r-1); });
             rc=[...new Set([...rc, ...er])];
         }
-
         rc.forEach(r => { for(let c=0; c<this.COLS; c++) this.grid[r][c]=null; });
         cc.forEach(c => { for(let r=0; r<this.ROWS; r++) this.grid[r][c]=null; });
-
         let tot = (rc.length*this.COLS) + (cc.length*this.ROWS);
         if(tot>0) {
             let pts = tot*10; if(rc.length>1||cc.length>1) pts*=2;
             this.addScore(pts);
         }
-
-        if(this.pulseMode==='GRAVITY') this.startGravity();
-        else this.checkGameOver();
+        if(this.pulseMode==='GRAVITY') this.startGravity(); else this.checkGameOver();
     },
 
     startGravity() {
@@ -518,7 +509,6 @@ const Game = {
         }
     },
 
-    // --- INPUT ---
     getPointer(e) {
         const r = this.canvas.getBoundingClientRect();
         const cx = e.touches ? e.touches[0].clientX : e.clientX;
@@ -566,7 +556,6 @@ const Game = {
         this.draggingShape = null;
     },
 
-    // --- RENDER ---
     loop() {
         this.updateAnim();
         this.draw();
@@ -575,40 +564,26 @@ const Game = {
 
     draw() {
         this.ctx.clearRect(0,0,this.width,this.height);
-
-        // Grid
         for(let r=0; r<this.ROWS; r++) {
             for(let c=0; c<this.COLS; c++) {
                 const x = this.boardX + c*(this.blockSize+this.GAP);
                 const y = this.boardY + r*(this.blockSize+this.GAP);
-                
-                // BG
                 this.ctx.fillStyle = '#2a2a30';
                 this.roundRect(x,y,this.blockSize,this.blockSize,4);
                 this.ctx.fill();
-
-                // Lock
                 if(this.isLocked(r,c)) {
                     this.ctx.fillStyle='#111'; this.ctx.fill();
                     this.ctx.strokeStyle='#c0392b'; this.ctx.lineWidth=2;
                     this.ctx.strokeRect(x+4,y+4,this.blockSize-8,this.blockSize-8);
                 }
-
                 if(this.grid[r][c]) this.drawBlock(x,y,this.grid[r][c]);
             }
         }
-
-        // Falling
         this.fallingPieces.forEach(p => this.drawBlock(p.x, p.y, p.color));
-
-        // Divider
         this.ctx.fillStyle = '#333';
         this.ctx.fillRect(0, this.handY-10, this.width, 2);
-
-        // Hand
         this.hand.forEach(s => {
             if(s.isDragging) {
-                // Ghost
                 const cx = s.x + (s.matrix[0].length * this.blockSize)/2;
                 const cy = s.y + (s.matrix.length * this.blockSize)/2;
                 const gr = Math.round((cy - this.boardY - this.blockSize/2) / (this.blockSize + this.GAP));
@@ -621,8 +596,6 @@ const Game = {
             }
             this.drawShape(s);
         });
-
-        // Border Effect
         if(this.pulseMode!=='NORMAL') {
             this.ctx.strokeStyle = this.pulseMode==='GRAVITY'?'#f39c12':this.pulseMode==='LOCKED'?'#e74c3c':'#9b59b6';
             this.ctx.lineWidth = 4;
@@ -641,9 +614,7 @@ const Game = {
     drawShape(s) {
         const size = s.isDragging ? this.blockSize : this.blockSize*0.85;
         const g = s.isDragging ? this.GAP : 2;
-        if(s.isDragging) {
-            this.ctx.shadowColor='rgba(0,0,0,0.5)'; this.ctx.shadowBlur=15; this.ctx.shadowOffsetY=15;
-        }
+        if(s.isDragging) { this.ctx.shadowColor='rgba(0,0,0,0.5)'; this.ctx.shadowBlur=15; this.ctx.shadowOffsetY=15; }
         for(let r=0; r<s.matrix.length; r++) {
             for(let c=0; c<s.matrix[r].length; c++) {
                 if(s.matrix[r][c]) {
@@ -679,7 +650,7 @@ const Game = {
 };
 
 window.onload = () => {
-    // FORCE HEIGHT LOGIC
+    // FORCE HEIGHT LOGIC (Critical for Android Address Bar)
     const setH = () => document.body.style.height = window.innerHeight + "px";
     window.addEventListener("resize", setH);
     setH();
